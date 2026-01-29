@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
+
+# Playwright
+.playwright-mcp/
+
+# Reference docs (internal)
+reference/
