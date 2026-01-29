@@ -2,6 +2,11 @@
 
 ## [1.1.0] - 2026-01-29
 
+### Deployment
+- 项目开源至 GitHub: https://github.com/ismedon/grinder-converter
+- 启用 GitHub Pages 在线访问: https://ismedon.github.io/grinder-converter/
+- 添加仓库标签: coffee, grinder, converter, comandante, 1zpresso, mahlkonig, ek43
+
 ### Added
 - **Mahlkönig EK43 磨豆机支持**
   - 刻度范围: 0-16（无级调节，支持小数如 0.5, 7.5）
