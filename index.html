@@ -490,21 +490,35 @@
 
     <!-- Disclaimer -->
     <div class="disclaimer" id="disclaimer">
-      转换基于社区实测经验，仅供参考，请根据实际口感微调
+      转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调
     </div>
   </div>
 
   <script>
-    // Constants
-    const CONVERSION_RATIO_C40_KULTRA = 3.75;
-    const CONVERSION_RATIO_KULTRA_EK43 = 10.67;
-
     // Grinder configurations
     const GRINDERS = {
       c40: { min: 0, max: 40, step: 1, decimals: 0 },
       kUltra: { min: 0, max: 150, step: 1, decimals: 0 },
       ek43: { min: 0, max: 16, step: 0.1, decimals: 1 }
     };
+
+    // Calibrated anchor points (verified on 2026-02-16)
+    const C40_TO_K_POINTS = [
+      [0, 0], [7, 24], [10, 37], [13, 49], [14, 49], [15, 53],
+      [19, 67], [20, 72.5], [24, 86], [25, 91.5], [26, 91.5], [33, 95.5], [40, 100]
+    ];
+    const K_TO_C40_POINTS = [
+      [0, 0], [24, 7], [37, 10], [49, 13.5], [53, 15],
+      [67, 19], [72.5, 20], [86, 24], [91.5, 25.5], [95.5, 33], [100, 40]
+    ];
+    const EK43_TO_K_POINTS = [
+      [0, 24], [2.55, 37], [4.7, 48], [5.1, 50], [5.7, 53], [8.5, 67],
+      [9.5, 72.5], [12.3, 86], [13.1, 91], [13.3, 92], [14.55, 95.5], [16, 100]
+    ];
+    const K_TO_EK43_POINTS = [
+      [24, 0], [37, 2.55], [48, 4.7], [50, 5.1], [53, 5.7], [67, 8.5],
+      [72.5, 9.5], [86, 12.3], [91, 13.1], [92, 13.3], [95.5, 14.55], [100, 16]
+    ];
 
     // i18n
     const i18n = {
@@ -520,7 +534,7 @@
         notationExplain: "K-Ultra 刻度格式说明",
         notationDesc: "格式为 X.Y.Z，其中 X=圈数, Y=数字(0-9), Z=小格(0-9)",
         notationExample: "例如 0.7.5 = 第0圈第7个数字再加5小格 = 75格",
-        disclaimer: "转换基于社区实测经验，仅供参考，请根据实际口感微调",
+        disclaimer: "转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调",
         outOfRange: "刻度超出常用范围",
         sameGrinder: "请选择不同的磨豆机",
         grinders: {
@@ -555,7 +569,7 @@
         notationExplain: "K-Ultra Notation Explained",
         notationDesc: "Format: X.Y.Z where X=rotation, Y=number(0-9), Z=tick(0-9)",
         notationExample: "e.g. 0.7.5 = rotation 0, number 7, tick 5 = 75 clicks",
-        disclaimer: "Conversion based on community experience. Fine-tune according to taste.",
+        disclaimer: "Calibrated with official references and Honest Coffee Guide mapping data (verified on 2026-02-16). Fine-tune according to taste.",
         outOfRange: "Setting out of typical range",
         sameGrinder: "Please select different grinders",
         grinders: {
@@ -612,12 +626,41 @@
     };
 
     // Conversion functions
+    function interpolatePiecewise(value, points) {
+      if (!Array.isArray(points) || points.length < 2) return value;
+
+      if (value <= points[0][0]) {
+        const [x0, y0] = points[0];
+        const [x1, y1] = points[1];
+        return y0 + ((value - x0) * (y1 - y0)) / (x1 - x0);
+      }
+
+      for (let i = 1; i < points.length; i++) {
+        const [x0, y0] = points[i - 1];
+        const [x1, y1] = points[i];
+        if (value <= x1) {
+          if (x1 === x0) return y1;
+          return y0 + ((value - x0) * (y1 - y0)) / (x1 - x0);
+        }
+      }
+
+      const [x0, y0] = points[points.length - 2];
+      const [x1, y1] = points[points.length - 1];
+      return y1 + ((value - x1) * (y1 - y0)) / (x1 - x0);
+    }
+
+    function clampToGrinderRange(value, grinderKey) {
+      const config = GRINDERS[grinderKey];
+      if (!config) return value;
+      return Math.min(config.max, Math.max(config.min, value));
+    }
+
     // Convert any grinder to K-Ultra (intermediate value)
     function toKUltra(value, source) {
       switch (source) {
-        case 'c40': return value * CONVERSION_RATIO_C40_KULTRA;
+        case 'c40': return interpolatePiecewise(value, C40_TO_K_POINTS);
         case 'kUltra': return value;
-        case 'ek43': return value * CONVERSION_RATIO_KULTRA_EK43;
+        case 'ek43': return interpolatePiecewise(value, EK43_TO_K_POINTS);
         default: return value;
       }
     }
@@ -625,18 +668,19 @@
     // Convert K-Ultra to any grinder
     function fromKUltra(kUltraValue, target) {
       switch (target) {
-        case 'c40': return kUltraValue / CONVERSION_RATIO_C40_KULTRA;
+        case 'c40': return interpolatePiecewise(kUltraValue, K_TO_C40_POINTS);
         case 'kUltra': return kUltraValue;
-        case 'ek43': return kUltraValue / CONVERSION_RATIO_KULTRA_EK43;
+        case 'ek43': return interpolatePiecewise(kUltraValue, K_TO_EK43_POINTS);
         default: return kUltraValue;
       }
     }
 
     // Main conversion: source → K-Ultra → target
     function convertValue(value, source, target) {
-      if (source === target) return value;
+      if (source === target) return clampToGrinderRange(value, target);
       const kUltraValue = toKUltra(value, source);
-      return fromKUltra(kUltraValue, target);
+      const converted = fromKUltra(kUltraValue, target);
+      return clampToGrinderRange(converted, target);
     }
 
     // Format result based on target grinder
