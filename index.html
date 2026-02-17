@@ -65,30 +65,38 @@
     .lang-switcher {
       display: flex;
       justify-content: flex-end;
-      gap: 8px;
+      align-items: center;
+      gap: 6px;
       margin-bottom: 24px;
     }
 
+    .lang-sep {
+      color: var(--text-secondary);
+      font-size: 14px;
+      user-select: none;
+    }
+
     .lang-btn {
-      padding: 6px 12px;
-      border: 1px solid var(--border-color);
-      background: var(--card-bg);
-      border-radius: 6px;
+      padding: 2px 0;
+      border: none;
+      background: none;
       cursor: pointer;
       font-size: 14px;
       color: var(--text-secondary);
       transition: all 0.2s;
+      border-bottom: 1px solid transparent;
     }
 
     .lang-btn:hover {
-      border-color: var(--accent-color);
-      color: var(--accent-color);
+      color: var(--text-primary);
+      border-bottom-color: var(--text-primary);
     }
 
     .lang-btn.active {
-      background: var(--accent-color);
-      color: white;
-      border-color: var(--accent-color);
+      color: var(--text-primary);
+      font-weight: 600;
+      background: none;
+      border-bottom: none;
     }
 
     /* Header */
@@ -431,6 +439,7 @@
     <!-- Language Switcher -->
     <div class="lang-switcher">
       <button class="lang-btn active" data-lang="zh">中文</button>
+      <span class="lang-sep">·</span>
       <button class="lang-btn" data-lang="en">EN</button>
     </div>
 
