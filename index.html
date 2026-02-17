@@ -53,11 +53,11 @@
       color: var(--text-primary);
       line-height: 1.6;
       min-height: 100vh;
-      padding: 20px;
+      padding: 24px;
     }
 
     .container {
-      max-width: 480px;
+      max-width: 440px;
       margin: 0 auto;
     }
 
@@ -94,7 +94,7 @@
     /* Header */
     .header {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 40px;
     }
 
     .header h1 {
@@ -114,10 +114,11 @@
     /* Card */
     .card {
       background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 16px;
+      border: none;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06);
+      padding: 28px 24px;
+      margin-bottom: 20px;
     }
 
     .card-title {
@@ -143,14 +144,14 @@
       min-width: 140px;
       padding: 12px 16px;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: 4px;
       background: var(--card-bg);
       color: var(--text-primary);
       font-size: 15px;
       cursor: pointer;
       transition: all 0.2s;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a8278' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
       padding-right: 36px;
@@ -162,13 +163,13 @@
 
     .grinder-select:focus {
       border-color: var(--accent-color);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(107, 124, 94, 0.12);
       outline: none;
     }
 
     .direction-arrow {
       font-size: 20px;
-      color: var(--accent-color);
+      color: var(--text-primary);
       font-weight: 600;
       flex-shrink: 0;
     }
@@ -190,7 +191,7 @@
       flex: 1;
       padding: 14px 16px;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: 4px;
       font-size: 18px;
       font-weight: 500;
       outline: none;
@@ -199,7 +200,7 @@
 
     .input-field:focus {
       border-color: var(--accent-color);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(107, 124, 94, 0.12);
     }
 
     /* 动画效果 */
@@ -294,8 +295,8 @@
       justify-content: center;
       gap: 8px;
       padding: 16px;
-      background: rgba(22, 163, 74, 0.08);
-      border-radius: 8px;
+      background: rgba(107, 124, 94, 0.08);
+      border-radius: 4px;
       margin-top: 16px;
     }
 
@@ -316,8 +317,8 @@
       align-items: center;
       gap: 8px;
       padding: 12px;
-      background: rgba(217, 119, 6, 0.1);
-      border-radius: 8px;
+      background: rgba(184, 134, 11, 0.08);
+      border-radius: 4px;
       margin-top: 12px;
       font-size: 14px;
       color: var(--warning-color);
@@ -329,9 +330,7 @@
 
     /* Info Section */
     .info-section {
-      border-top: 1px solid var(--border-color);
-      padding-top: 20px;
-      margin-top: 4px;
+      margin-top: 24px;
     }
 
     .info-title {
@@ -367,9 +366,9 @@
       text-align: center;
       margin-top: 24px;
       padding: 12px;
-      background: var(--card-bg);
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
+      background: none;
+      border-radius: 0;
+      border: none;
     }
 
     /* 深色模式 */
@@ -414,7 +413,7 @@
       }
 
       .card {
-        padding: 28px;
+        padding: 32px 28px;
       }
 
       .direction-selectors {
