@@ -50,6 +50,7 @@
                    "Helvetica Neue", Arial, sans-serif,
                    "Apple Color Emoji", "Segoe UI Emoji";
       background-color: var(--bg-color);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
       color: var(--text-primary);
       line-height: 1.6;
       min-height: 100vh;
@@ -59,6 +60,7 @@
     .container {
       max-width: 440px;
       margin: 0 auto;
+      transition: opacity 0.15s ease;
     }
 
     /* Language Switcher */
@@ -102,21 +104,22 @@
     /* Header */
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 48px;
     }
 
     .header h1 {
       font-family: var(--font-serif);
-      font-size: 26px;
+      font-size: 32px;
       font-weight: 600;
-      letter-spacing: 0.08em;
-      margin-bottom: 6px;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
     }
 
     .header .subtitle {
       font-size: 13px;
+      font-weight: 300;
       color: var(--text-secondary);
-      letter-spacing: 0.15em;
+      letter-spacing: 0.25em;
     }
 
     /* Card */
@@ -124,18 +127,19 @@
       background: var(--card-bg);
       border: none;
       border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06);
+      box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
       padding: 28px 24px;
       margin-bottom: 20px;
     }
 
     .card-title {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 400;
       color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 0.12em;
-      margin-bottom: 12px;
+      letter-spacing: 0.15em;
+      margin-bottom: 18px;
     }
 
     /* Direction Selection */
@@ -176,10 +180,43 @@
     }
 
     .direction-arrow {
-      font-size: 20px;
-      color: var(--text-primary);
-      font-weight: 600;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      border: none;
+      background: none;
+      padding: 4px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .direction-arrow svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--text-primary);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.2s;
+    }
+
+    .direction-arrow:hover svg {
+      stroke: var(--accent-color);
+    }
+
+    .direction-arrow:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    .direction-arrow.bounce {
+      transform: translateX(4px);
+    }
+
+    .direction-arrow.swap {
+      transform: rotate(180deg);
     }
 
     /* Input */
@@ -203,12 +240,12 @@
       font-size: 18px;
       font-weight: 500;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
     }
 
     .input-field:focus {
       border-color: var(--accent-color);
-      box-shadow: 0 0 0 3px rgba(107, 124, 94, 0.12);
+      box-shadow: 0 0 0 4px rgba(107, 124, 94, 0.08);
     }
 
     /* 动画效果 */
@@ -223,17 +260,23 @@
       }
     }
 
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
+    @keyframes resultReveal {
+      from {
+        opacity: 0;
+        transform: scale(0.92);
       }
-      50% {
-        transform: scale(1.02);
+      to {
+        opacity: 1;
+        transform: scale(1);
       }
     }
 
     #resultContent {
-      animation: fadeIn 0.25s ease-out;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    #resultContent .result-value {
+      animation: resultReveal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .result-value {
@@ -278,9 +321,10 @@
     }
 
     .result-unit {
-      font-size: 16px;
+      font-size: 14px;
       color: var(--text-secondary);
-      margin-top: 4px;
+      margin-top: 6px;
+      letter-spacing: 0.08em;
     }
 
     .result-notation {
@@ -302,19 +346,20 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 16px;
-      background: rgba(107, 124, 94, 0.08);
-      border-radius: 4px;
-      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(107, 124, 94, 0.05);
+      border-left: 2px solid var(--success-color);
+      border-radius: 0 4px 4px 0;
+      margin-top: 20px;
     }
 
     .brew-method-label {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-secondary);
     }
 
     .brew-method-value {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--success-color);
     }
@@ -396,8 +441,13 @@
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9287' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
       }
 
+      .card {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
       .brew-method {
-        background: rgba(138, 158, 122, 0.1);
+        background: rgba(138, 158, 122, 0.08);
       }
 
       .input-field {
@@ -417,7 +467,7 @@
       }
 
       .header h1 {
-        font-size: 28px;
+        font-size: 34px;
       }
 
       .card {
@@ -458,7 +508,7 @@
           <option value="kUltra">1Zpresso K-Ultra</option>
           <option value="ek43">Mahlkönig EK43</option>
         </select>
-        <span class="direction-arrow">→</span>
+        <button class="direction-arrow" id="directionArrow" aria-label="交换方向"><svg viewBox="0 0 24 24"><path d="M7 4l-4 4 4 4"/><path d="M3 8h14"/><path d="M17 20l4-4-4-4"/><path d="M21 16H7"/></svg></button>
         <select id="targetSelect" class="grinder-select" aria-label="目标设备">
           <option value="c40">Comandante C40</option>
           <option value="kUltra" selected>1Zpresso K-Ultra</option>
@@ -557,6 +607,7 @@
         notationExample: "例如 0.7.5 = 第0圈第7个数字再加5小格 = 75格",
         disclaimer: "转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调",
         outOfRange: "刻度超出常用范围",
+        swapDirection: "交换方向",
         sameGrinder: "请选择不同的磨豆机",
         grinders: {
           c40: "Comandante C40",
@@ -592,6 +643,7 @@
         notationExample: "e.g. 0.7.5 = rotation 0, number 7, tick 5 = 75 clicks",
         disclaimer: "Calibrated with official references and Honest Coffee Guide mapping data (verified on 2026-02-16). Fine-tune according to taste.",
         outOfRange: "Setting out of typical range",
+        swapDirection: "Swap direction",
         sameGrinder: "Please select different grinders",
         grinders: {
           c40: "Comandante C40",
@@ -643,7 +695,8 @@
       notationExplain: document.getElementById('notationExplain'),
       notationDesc: document.getElementById('notationDesc'),
       notationExample: document.getElementById('notationExample'),
-      disclaimer: document.getElementById('disclaimer')
+      disclaimer: document.getElementById('disclaimer'),
+      directionArrow: document.getElementById('directionArrow')
     };
 
     // Conversion functions
@@ -780,6 +833,9 @@
       elements.notationExample.textContent = t.notationExample;
       elements.disclaimer.textContent = t.disclaimer;
 
+      // Update swap button aria-label
+      elements.directionArrow.setAttribute('aria-label', t.swapDirection);
+
       // Update input unit based on source grinder
       elements.inputUnit.textContent = t.units[sourceGrinder];
 
@@ -856,16 +912,33 @@
       }
     }
 
+    // Arrow bounce helper
+    const arrowEl = document.getElementById('directionArrow');
+    function bounceArrow() {
+      arrowEl.classList.add('bounce');
+      setTimeout(() => arrowEl.classList.remove('bounce'), 300);
+    }
+
+    // Language fade helper
+    const containerEl = document.querySelector('.container');
+    function fadeSwitch(callback) {
+      containerEl.style.opacity = '0';
+      setTimeout(() => {
+        callback();
+        containerEl.style.opacity = '1';
+      }, 150);
+    }
+
     // Event Listeners
     // Language switcher
     document.querySelectorAll('.lang-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (btn.classList.contains('active')) return;
         document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentLang = btn.dataset.lang;
         document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
-        updateTexts();
-        convert();
+        fadeSwitch(() => { updateTexts(); convert(); });
       });
     });
 
@@ -876,12 +949,34 @@
       elements.inputUnit.textContent = t.units[sourceGrinder];
       updateInputConfig();
       elements.inputValue.value = '';
+      bounceArrow();
       convert();
     });
 
     // Target grinder select
     elements.targetSelect.addEventListener('change', () => {
       targetGrinder = elements.targetSelect.value;
+      bounceArrow();
+      convert();
+    });
+
+    // Swap direction button
+    arrowEl.addEventListener('click', () => {
+      // Swap state
+      [sourceGrinder, targetGrinder] = [targetGrinder, sourceGrinder];
+
+      // Sync selects
+      elements.sourceSelect.value = sourceGrinder;
+      elements.targetSelect.value = targetGrinder;
+
+      // Rotation animation
+      arrowEl.classList.add('swap');
+      setTimeout(() => arrowEl.classList.remove('swap'), 300);
+
+      // Update UI
+      updateInputConfig();
+      elements.inputValue.value = '';
+      updateTexts();
       convert();
     });
 

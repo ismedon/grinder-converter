@@ -7,6 +7,7 @@ function makeElementStub() {
   return {
     style: {},
     classList: { add() {}, remove() {} },
+    setAttribute() {},
     addEventListener() {},
     textContent: "",
     value: "",
@@ -31,12 +32,15 @@ function loadConverterContext() {
       }
       return elementCache.get(id);
     },
+    querySelector() {
+      return makeElementStub();
+    },
     querySelectorAll() {
       return [];
     },
   };
 
-  const context = { document: documentStub, console };
+  const context = { document: documentStub, console, setTimeout, clearTimeout };
   vm.createContext(context);
   vm.runInContext(scriptMatch[1], context);
   return context;
