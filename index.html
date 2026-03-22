@@ -31,11 +31,11 @@
       --bg-color: #f5f0e8;
       --card-bg: #faf8f4;
       --text-primary: #2d2a26;
-      --text-secondary: #8a8278;
+      --text-secondary: #736960;
       --accent-color: #6b7c5e;
       --border-color: #e5dfd5;
       --success-color: #c45c3c;
-      --warning-color: #8a7440;
+      --warning-color: #7d6a38;
       --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
     }
 
@@ -49,6 +49,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                    "Helvetica Neue", Arial, sans-serif,
                    "Apple Color Emoji", "Segoe UI Emoji";
+      font-size: 1rem;
       background-color: var(--bg-color);
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
       color: var(--text-primary);
@@ -74,19 +75,22 @@
 
     .lang-sep {
       color: var(--text-secondary);
-      font-size: 14px;
+      font-size: 0.875rem;
       user-select: none;
     }
 
     .lang-btn {
-      padding: 2px 0;
+      padding: 8px 4px;
       border: none;
       background: none;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 0.875rem;
       color: var(--text-secondary);
       transition: all 0.2s;
       border-bottom: 1px solid transparent;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
     }
 
     .lang-btn:hover {
@@ -109,14 +113,16 @@
 
     .header h1 {
       font-family: var(--font-serif);
-      font-size: 32px;
+      font-size: 2rem;
       font-weight: 600;
+      line-height: 1.2;
       letter-spacing: 0.12em;
+      font-kerning: normal;
       margin-bottom: 12px;
     }
 
     .header .subtitle {
-      font-size: 13px;
+      font-size: 0.8125rem;
       font-weight: 300;
       color: var(--text-secondary);
       letter-spacing: 0.25em;
@@ -134,7 +140,8 @@
     }
 
     .card-title {
-      font-size: 11px;
+      display: block;
+      font-size: 0.75rem;
       font-weight: 400;
       color: var(--text-secondary);
       text-transform: uppercase;
@@ -159,7 +166,8 @@
       border-radius: 4px;
       background: var(--card-bg);
       color: var(--text-primary);
-      font-size: 15px;
+      font-family: inherit;
+      font-size: 0.875rem;
       cursor: pointer;
       transition: all 0.2s;
       appearance: none;
@@ -183,12 +191,15 @@
       flex-shrink: 0;
       display: flex;
       align-items: center;
+      justify-content: center;
       border: none;
       background: none;
-      padding: 4px;
+      min-width: 44px;
+      min-height: 44px;
+      padding: 12px;
       cursor: pointer;
       border-radius: 4px;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .direction-arrow svg {
@@ -237,8 +248,10 @@
       padding: 14px 16px;
       border: 1px solid var(--border-color);
       border-radius: 4px;
-      font-size: 18px;
+      font-family: inherit;
+      font-size: 1.125rem;
       font-weight: 500;
+      font-variant-numeric: tabular-nums;
       outline: none;
       transition: border-color 0.4s ease, box-shadow 0.4s ease;
     }
@@ -276,7 +289,7 @@
     }
 
     #resultContent .result-value {
-      animation: resultReveal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: resultReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .result-value {
@@ -287,21 +300,19 @@
       transition: opacity 0.2s ease, max-height 0.2s ease;
     }
 
-    .lang-btn:active,
-    .direction-option:active {
+    .lang-btn:active {
       transform: scale(0.98);
     }
 
     /* 键盘焦点样式 */
     .lang-btn:focus-visible,
-    .direction-option:focus-visible,
     .input-field:focus-visible {
       outline: 2px solid var(--accent-color);
       outline-offset: 2px;
     }
 
     .input-unit {
-      font-size: 14px;
+      font-size: 0.875rem;
       color: var(--text-secondary);
       min-width: 60px;
     }
@@ -314,30 +325,41 @@
 
     .result-value {
       font-family: var(--font-serif);
-      font-size: 52px;
+      font-size: 3.25rem;
       font-weight: 700;
       color: var(--success-color);
       line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+      font-kerning: normal;
     }
 
     .result-unit {
-      font-size: 14px;
+      font-size: 0.875rem;
       color: var(--text-secondary);
       margin-top: 6px;
       letter-spacing: 0.08em;
     }
 
     .result-notation {
-      font-size: 20px;
+      font-size: 1.25rem;
       color: var(--text-secondary);
       margin-top: 8px;
       font-weight: 400;
+      font-variant-numeric: tabular-nums;
     }
 
     .result-placeholder {
       color: var(--text-secondary);
-      font-size: 16px;
+      font-size: 1rem;
       padding: 24px 0;
+    }
+
+    .result-placeholder.hidden {
+      display: none;
+    }
+
+    .result-content-hidden {
+      display: none;
     }
 
     /* Brew Method */
@@ -354,12 +376,12 @@
     }
 
     .brew-method-label {
-      font-size: 13px;
+      font-size: 0.8125rem;
       color: var(--text-secondary);
     }
 
     .brew-method-value {
-      font-size: 14px;
+      font-size: 0.875rem;
       font-weight: 600;
       color: var(--success-color);
     }
@@ -373,7 +395,7 @@
       background: rgba(184, 134, 11, 0.08);
       border-radius: 4px;
       margin-top: 12px;
-      font-size: 14px;
+      font-size: 0.875rem;
       color: var(--warning-color);
     }
 
@@ -383,11 +405,11 @@
 
     /* Info Section */
     .info-section {
-      margin-top: 24px;
+      margin-top: 0;
     }
 
     .info-title {
-      font-size: 14px;
+      font-size: 0.875rem;
       font-weight: 500;
       color: var(--text-secondary);
       margin-bottom: 12px;
@@ -395,7 +417,7 @@
 
     .info-list {
       list-style: none;
-      font-size: 13px;
+      font-size: 0.8125rem;
       color: var(--text-secondary);
       line-height: 1.8;
     }
@@ -414,7 +436,7 @@
     }
 
     .disclaimer {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--text-secondary);
       text-align: center;
       margin-top: 24px;
@@ -460,6 +482,15 @@
       }
     }
 
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     /* Responsive */
     @media (min-width: 640px) {
       body {
@@ -467,7 +498,7 @@
       }
 
       .header h1 {
-        font-size: 34px;
+        font-size: 2.125rem;
       }
 
       .card {
@@ -487,29 +518,30 @@
 <body>
   <div class="container">
     <!-- Language Switcher -->
-    <div class="lang-switcher">
+    <nav class="lang-switcher" aria-label="Language">
       <button class="lang-btn active" data-lang="zh">中文</button>
-      <span class="lang-sep">·</span>
+      <span class="lang-sep" aria-hidden="true">·</span>
       <button class="lang-btn" data-lang="en">EN</button>
-    </div>
+    </nav>
 
     <!-- Header -->
-    <div class="header">
+    <header class="header">
       <h1 id="title">磨豆机刻度转换器</h1>
       <p class="subtitle" id="subtitle">C40 ↔ K-Ultra ↔ EK43</p>
-    </div>
+    </header>
 
+    <main>
     <!-- Direction Selection -->
     <div class="card">
       <div class="card-title" id="directionLabel">转换方向</div>
       <div class="direction-selectors">
-        <select id="sourceSelect" class="grinder-select" aria-label="源设备">
+        <select id="sourceSelect" class="grinder-select" aria-labelledby="directionLabel" aria-label="源设备">
           <option value="c40">Comandante C40</option>
           <option value="kUltra">1Zpresso K-Ultra</option>
           <option value="ek43">Mahlkönig EK43</option>
         </select>
-        <button class="direction-arrow" id="directionArrow" aria-label="交换方向"><svg viewBox="0 0 24 24"><path d="M7 4l-4 4 4 4"/><path d="M3 8h14"/><path d="M17 20l4-4-4-4"/><path d="M21 16H7"/></svg></button>
-        <select id="targetSelect" class="grinder-select" aria-label="目标设备">
+        <button class="direction-arrow" id="directionArrow" aria-label="交换方向"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l-4 4 4 4"/><path d="M3 8h14"/><path d="M17 20l4-4-4-4"/><path d="M21 16H7"/></svg></button>
+        <select id="targetSelect" class="grinder-select" aria-labelledby="directionLabel" aria-label="目标设备">
           <option value="c40">Comandante C40</option>
           <option value="kUltra" selected>1Zpresso K-Ultra</option>
           <option value="ek43">Mahlkönig EK43</option>
@@ -519,10 +551,10 @@
 
     <!-- Input -->
     <div class="card">
-      <div class="card-title" id="inputLabel">输入刻度</div>
+      <label class="card-title" id="inputLabel" for="inputValue">输入刻度</label>
       <div class="input-group">
         <div class="input-wrapper">
-          <input type="number" class="input-field" id="inputValue" placeholder="20" min="0" step="1" aria-describedby="inputUnit" aria-label="刻度数值">
+          <input type="number" class="input-field" id="inputValue" inputmode="decimal" placeholder="20" min="0" step="1" aria-describedby="inputUnit">
           <span class="input-unit" id="inputUnit">C40 clicks</span>
         </div>
       </div>
@@ -533,7 +565,7 @@
       <div class="card-title" id="resultLabel">转换结果</div>
       <div class="result-container" role="region" aria-live="polite" aria-label="转换结果">
         <div id="resultPlaceholder" class="result-placeholder">输入刻度后自动计算</div>
-        <div id="resultContent" style="display: none;">
+        <div id="resultContent" class="result-content-hidden">
           <div class="result-value" id="resultValue">75</div>
           <div class="result-unit" id="resultUnit">clicks</div>
           <div class="result-notation" id="resultNotation">(0.7.5)</div>
@@ -550,7 +582,7 @@
 
     <!-- Info Section -->
     <div class="card">
-      <div class="info-section" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="info-section">
         <div class="info-title" id="notationExplain">K-Ultra 刻度格式说明</div>
         <ul class="info-list">
           <li id="notationDesc">格式为 X.Y.Z，其中 X=圈数, Y=数字(0-9), Z=小格(0-9)</li>
@@ -563,6 +595,7 @@
     <div class="disclaimer" id="disclaimer">
       转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调
     </div>
+    </main>
   </div>
 
   <script>
@@ -609,6 +642,9 @@
         outOfRange: "刻度超出常用范围",
         swapDirection: "交换方向",
         sameGrinder: "请选择不同的磨豆机",
+        sourceLabel: "源设备",
+        targetLabel: "目标设备",
+        resultRegion: "转换结果",
         grinders: {
           c40: "Comandante C40",
           kUltra: "1Zpresso K-Ultra",
@@ -645,6 +681,9 @@
         outOfRange: "Setting out of typical range",
         swapDirection: "Swap direction",
         sameGrinder: "Please select different grinders",
+        sourceLabel: "Source grinder",
+        targetLabel: "Target grinder",
+        resultRegion: "Conversion result",
         grinders: {
           c40: "Comandante C40",
           kUltra: "1Zpresso K-Ultra",
@@ -833,8 +872,11 @@
       elements.notationExample.textContent = t.notationExample;
       elements.disclaimer.textContent = t.disclaimer;
 
-      // Update swap button aria-label
+      // Update ARIA labels for current language
       elements.directionArrow.setAttribute('aria-label', t.swapDirection);
+      elements.sourceSelect.setAttribute('aria-label', t.sourceLabel);
+      elements.targetSelect.setAttribute('aria-label', t.targetLabel);
+      document.querySelector('.result-container').setAttribute('aria-label', t.resultRegion);
 
       // Update input unit based on source grinder
       elements.inputUnit.textContent = t.units[sourceGrinder];
@@ -858,46 +900,40 @@
 
       // Check if same grinder selected
       if (sourceGrinder === targetGrinder) {
-        elements.resultPlaceholder.style.display = 'block';
+        elements.resultPlaceholder.classList.remove('hidden');
         elements.resultPlaceholder.textContent = t.sameGrinder;
-        elements.resultContent.style.display = 'none';
+        elements.resultContent.classList.add('result-content-hidden');
         elements.warning.classList.remove('show');
         return;
       }
 
       if (isNaN(input) || elements.inputValue.value === '') {
-        elements.resultPlaceholder.style.display = 'block';
+        elements.resultPlaceholder.classList.remove('hidden');
         elements.resultPlaceholder.textContent = t.resultPlaceholder;
-        elements.resultContent.style.display = 'none';
+        elements.resultContent.classList.add('result-content-hidden');
         elements.warning.classList.remove('show');
         return;
       }
 
       const sourceConfig = GRINDERS[sourceGrinder];
-      const targetConfig = GRINDERS[targetGrinder];
-      let isOutOfRange = false;
-
-      // Check if input is out of range
-      if (input < sourceConfig.min || input > sourceConfig.max) {
-        isOutOfRange = true;
-      }
+      const isOutOfRange = input < sourceConfig.min || input > sourceConfig.max;
 
       // Perform conversion
       const rawResult = convertValue(input, sourceGrinder, targetGrinder);
       const result = formatResult(rawResult, targetGrinder);
 
       // Show result
-      elements.resultPlaceholder.style.display = 'none';
-      elements.resultContent.style.display = 'block';
+      elements.resultPlaceholder.classList.add('hidden');
+      elements.resultContent.classList.remove('result-content-hidden');
       elements.resultValue.textContent = result;
       elements.resultUnit.textContent = t.units[targetGrinder];
 
       // Show notation for K-Ultra output
       if (targetGrinder === 'kUltra') {
-        elements.resultNotation.style.display = 'block';
+        elements.resultNotation.classList.remove('result-content-hidden');
         elements.resultNotation.textContent = `(${clicksToNotation(Math.round(result))})`;
       } else {
-        elements.resultNotation.style.display = 'none';
+        elements.resultNotation.classList.add('result-content-hidden');
       }
 
       // Get brew method based on target grinder
@@ -916,17 +952,17 @@
     const arrowEl = document.getElementById('directionArrow');
     function bounceArrow() {
       arrowEl.classList.add('bounce');
-      setTimeout(() => arrowEl.classList.remove('bounce'), 300);
+      arrowEl.addEventListener('transitionend', () => arrowEl.classList.remove('bounce'), { once: true });
     }
 
     // Language fade helper
     const containerEl = document.querySelector('.container');
     function fadeSwitch(callback) {
       containerEl.style.opacity = '0';
-      setTimeout(() => {
+      containerEl.addEventListener('transitionend', () => {
         callback();
         containerEl.style.opacity = '1';
-      }, 150);
+      }, { once: true });
     }
 
     // Event Listeners
@@ -971,7 +1007,7 @@
 
       // Rotation animation
       arrowEl.classList.add('swap');
-      setTimeout(() => arrowEl.classList.remove('swap'), 300);
+      arrowEl.addEventListener('transitionend', () => arrowEl.classList.remove('swap'), { once: true });
 
       // Update UI
       updateInputConfig();
