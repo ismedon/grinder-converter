@@ -151,6 +151,37 @@ test("sanitizeEntry preserves known fields and clamps rating to 0-5 integer", ()
   assert.equal(sanitizeEntry({ id: "a", rating: "bad" }).rating, 0, "non-numeric rating → 0");
 });
 
+test("sanitizeEntry rejects non-primitive scalar fields from untrusted import", () => {
+  const ctx = loadContext();
+  const { sanitizeEntry } = ctx.BrewLog;
+
+  const clean = sanitizeEntry({
+    id: "x",
+    flavorNotes: { evil: 1 },
+    reflection: ["a", "b"],
+    weather: null,
+    date: { not: "a string" },
+    beans: { name: { nested: 1 }, origin: "Yirgacheffe" },
+    brew: { dose: ["array"], waterTempC: "94" },
+  });
+  assert.equal(clean.flavorNotes, "", "object scalar dropped, default kept");
+  assert.equal(clean.reflection, "", "array scalar dropped, default kept");
+  assert.equal(clean.weather, "", "null scalar dropped, default kept");
+  assert.equal(clean.beans.name, "", "object nested-scalar dropped");
+  assert.equal(clean.beans.origin, "Yirgacheffe", "valid string still copied");
+  assert.equal(clean.brew.dose, "", "array nested-scalar dropped");
+  assert.equal(clean.brew.waterTempC, "94", "valid string still copied");
+  // Date default is still a YYYY-MM-DD string, not the rejected object
+  assert.match(clean.date, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("sanitizeEntry rejects array as a nested group", () => {
+  const ctx = loadContext();
+  const clean = ctx.BrewLog.sanitizeEntry({ id: "x", beans: ["not", "an", "object"] });
+  assert.equal(clean.beans.name, "", "array group is treated as missing");
+  assert.equal(clean.beans.origin, "");
+});
+
 test("export → import roundtrip preserves every entry", () => {
   const ctx = loadContext();
   const { createEntry, exportPayload, extractEntries, mergeImport } = ctx.BrewLog;

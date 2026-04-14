@@ -1484,17 +1484,23 @@
         };
       }
 
-      // Validate a single entry loosely — drop malformed records, never throw
+      // Validate a single entry loosely — drop malformed records, never throw.
+      // Imported scalars must be string/number primitives; arrays and objects are
+      // rejected per-field so a crafted import can't sneak `[object Object]` into
+      // the rendered spread.
+      function isPrimitiveScalar(v) {
+        return typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v));
+      }
       function sanitizeEntry(raw) {
         if (!raw || typeof raw !== 'object') return null;
         if (typeof raw.id !== 'string' || !raw.id) return null;
         const base = createEntry({ id: raw.id });
-        // Shallow-merge known scalar fields
+        // Shallow-merge known scalar fields, skipping non-primitive payloads
         for (const k of ['schemaVersion', 'createdAt', 'date', 'weather',
                          'rating', 'flavorNotes', 'reflection']) {
-          if (k in raw) base[k] = raw[k];
+          if (k in raw && isPrimitiveScalar(raw[k])) base[k] = raw[k];
         }
-        // Nested groups: only copy recognised subfields
+        // Nested groups: only copy recognised primitive subfields
         const groups = {
           beans: ['name', 'origin', 'roastDate', 'roastLevel'],
           grinder: ['model', 'setting', 'distributionNote'],
@@ -1504,8 +1510,10 @@
         };
         for (const [g, fields] of Object.entries(groups)) {
           const src = raw[g];
-          if (src && typeof src === 'object') {
-            for (const f of fields) if (f in src) base[g][f] = src[f];
+          if (src && typeof src === 'object' && !Array.isArray(src)) {
+            for (const f of fields) {
+              if (f in src && isPrimitiveScalar(src[f])) base[g][f] = src[f];
+            }
           }
         }
         // Rating must be integer 0-5
