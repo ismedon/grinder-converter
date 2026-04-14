@@ -108,7 +108,57 @@
     /* Header */
     .header {
       text-align: center;
-      margin-bottom: 48px;
+      margin-bottom: 32px;
+    }
+
+    /* View Switcher (换算 | 日志) */
+    .view-switcher {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .view-sep {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      user-select: none;
+      opacity: 0.5;
+    }
+
+    .view-btn {
+      padding: 8px 6px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-size: 0.9375rem;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+      border-bottom: 1px solid transparent;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    .view-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .view-btn.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--text-primary);
+    }
+
+    .view-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    .view[hidden] {
+      display: none;
     }
 
     .header h1 {
@@ -530,7 +580,15 @@
       <p class="subtitle" id="subtitle">C40 ↔ K-Ultra ↔ EK43</p>
     </header>
 
+    <!-- View Switcher -->
+    <nav class="view-switcher" aria-label="视图切换">
+      <button class="view-btn active" data-view="converter" id="viewBtnConverter">换算</button>
+      <span class="view-sep" aria-hidden="true">｜</span>
+      <button class="view-btn" data-view="log" id="viewBtnLog">日志</button>
+    </nav>
+
     <main>
+    <div class="view" id="converterView">
     <!-- Direction Selection -->
     <div class="card">
       <div class="card-title" id="directionLabel">转换方向</div>
@@ -594,6 +652,11 @@
     <!-- Disclaimer -->
     <div class="disclaimer" id="disclaimer">
       转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调
+    </div>
+    </div><!-- /#converterView -->
+
+    <div class="view" id="logView" hidden>
+      <!-- Brew Log view — UI is mounted in stage 3 -->
     </div>
     </main>
   </div>
@@ -1097,6 +1160,49 @@
       };
     })();
 
+    // ─────────────────────────────────────────────────────────────
+    // Router: hash-based view switching
+    //   #/            → converter  (default)
+    //   #/log         → brew log home
+    //   #/log/<id>    → specific entry
+    // ─────────────────────────────────────────────────────────────
+    function parseRoute(hash) {
+      const h = (hash || '').replace(/^#/, '').trim();
+      if (!h || h === '/' || h === '/converter') return { view: 'converter' };
+      const m = h.match(/^\/log(?:\/(.+))?$/);
+      if (m) return { view: 'log', entryId: m[1] || null };
+      return { view: 'converter' };
+    }
+
+    function navigate(hash) {
+      if (typeof location !== 'undefined' && location.hash !== hash) {
+        location.hash = hash;
+      } else {
+        applyRoute();
+      }
+    }
+
+    function applyRoute() {
+      const route = parseRoute(typeof location !== 'undefined' ? location.hash : '');
+      const converterView = document.getElementById('converterView');
+      const logView = document.getElementById('logView');
+      const btnConverter = document.getElementById('viewBtnConverter');
+      const btnLog = document.getElementById('viewBtnLog');
+
+      const isLog = route.view === 'log';
+      if (converterView) converterView.hidden = isLog;
+      if (logView) logView.hidden = !isLog;
+      if (btnConverter) btnConverter.classList.toggle('active', !isLog);
+      if (btnLog) btnLog.classList.toggle('active', isLog);
+
+      if (isLog && typeof renderLogView === 'function') {
+        renderLogView(route.entryId);
+      }
+    }
+
+    // Stage-3 mount point — replaced when the log UI is built out.
+    function renderLogView(/* entryId */) {}
+
     // Arrow bounce helper
     const arrowEl = document.getElementById('directionArrow');
     function bounceArrow() {
@@ -1168,9 +1274,20 @@
     // Input field
     elements.inputValue.addEventListener('input', convert);
 
+    // View switcher (tab buttons + hashchange)
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigate(btn.dataset.view === 'log' ? '#/log' : '#/');
+      });
+    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('hashchange', applyRoute);
+    }
+
     // Initialize
     updateTexts();
     updateInputConfig();
+    applyRoute();
   </script>
 </body>
 </html>

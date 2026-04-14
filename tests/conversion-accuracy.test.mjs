@@ -6,15 +6,21 @@ import vm from "node:vm";
 function makeElementStub() {
   return {
     style: {},
-    classList: { add() {}, remove() {} },
+    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
     setAttribute() {},
+    getAttribute() { return null; },
     addEventListener() {},
+    removeEventListener() {},
+    appendChild() {},
     textContent: "",
+    innerHTML: "",
     value: "",
     min: "",
     max: "",
     step: "",
     placeholder: "",
+    hidden: false,
+    dataset: {},
   };
 }
 
