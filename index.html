@@ -161,6 +161,324 @@
       display: none;
     }
 
+    /* ─── Brew Log view ───────────────────────────────────────── */
+    .log-shell {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .log-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .log-toolbar-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-tool-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      letter-spacing: 0.08em;
+      border-radius: 3px;
+      cursor: pointer;
+      min-height: 36px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .log-tool-btn:hover {
+      border-color: var(--accent-color);
+      color: var(--text-primary);
+    }
+
+    .log-tool-btn.primary {
+      color: var(--text-primary);
+      border-color: var(--text-primary);
+    }
+
+    .log-tool-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    /* Two-page spread — desktop */
+    .log-spread {
+      background: var(--card-bg);
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 560px;
+      position: relative;
+    }
+
+    .log-spread::before {
+      /* gutter: a subtle double-line down the middle like a stitched notebook */
+      content: "";
+      position: absolute;
+      top: 24px;
+      bottom: 24px;
+      left: 50%;
+      width: 1px;
+      background: var(--border-color);
+      box-shadow: -3px 0 0 -2px var(--border-color), 3px 0 0 -2px var(--border-color);
+      pointer-events: none;
+    }
+
+    .log-page {
+      padding: 40px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .log-page-left {
+      border-right: none;
+    }
+
+    .log-date-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 14px;
+      font-family: var(--font-serif);
+    }
+
+    .log-date {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--text-primary);
+    }
+
+    .log-weather {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .log-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .log-section-title {
+      font-family: var(--font-serif);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.18em;
+    }
+
+    .log-fields {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 14px;
+      font-size: 0.9375rem;
+    }
+
+    .log-field-label {
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      letter-spacing: 0.06em;
+      padding-top: 3px;
+      white-space: nowrap;
+    }
+
+    .log-field-value {
+      color: var(--text-primary);
+      font-size: 1rem;
+      min-height: 1.5em;
+      line-height: 1.5;
+      padding: 2px 4px;
+      border-radius: 2px;
+      border-bottom: 1px dotted transparent;
+      transition: border-color 0.2s;
+    }
+
+    .log-field-value:empty::before,
+    .log-field-value.is-empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-secondary);
+      opacity: 0.45;
+      font-style: italic;
+    }
+
+    .log-prose {
+      min-height: 110px;
+      line-height: 1.75;
+      font-size: 1rem;
+      color: var(--text-primary);
+      padding: 2px 4px;
+      border-radius: 2px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .log-prose:empty::before,
+    .log-prose.is-empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-secondary);
+      opacity: 0.45;
+      font-style: italic;
+    }
+
+    .log-rating {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 1.25rem;
+      color: var(--accent-color);
+      letter-spacing: 0.2em;
+      user-select: none;
+    }
+
+    .log-star {
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px;
+      transition: transform 0.15s, color 0.15s;
+    }
+
+    .log-star:hover {
+      transform: scale(1.15);
+    }
+
+    .log-star.is-empty {
+      color: var(--text-secondary);
+      opacity: 0.4;
+    }
+
+    .log-pager {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+      font-family: var(--font-serif);
+      color: var(--text-secondary);
+    }
+
+    .log-pager-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 3px;
+      transition: color 0.2s;
+    }
+
+    .log-pager-btn:hover:not(:disabled) {
+      color: var(--text-primary);
+    }
+
+    .log-pager-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .log-pager-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    .log-pager-label {
+      font-size: 0.9375rem;
+      letter-spacing: 0.08em;
+      min-width: 80px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log-footer-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    .log-discard {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      opacity: 0.55;
+      padding: 8px 12px;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    .log-discard:hover {
+      opacity: 1;
+      color: var(--success-color);
+    }
+
+    /* Empty state */
+    .log-empty {
+      text-align: center;
+      padding: 80px 24px;
+      color: var(--text-secondary);
+      background: var(--card-bg);
+      border-radius: 4px;
+    }
+
+    .log-empty-msg {
+      font-family: var(--font-serif);
+      font-size: 1.125rem;
+      letter-spacing: 0.14em;
+      margin-bottom: 24px;
+      opacity: 0.7;
+    }
+
+    .log-corrupt-banner {
+      background: rgba(184, 134, 11, 0.1);
+      border-left: 2px solid var(--warning-color);
+      padding: 10px 14px;
+      font-size: 0.8125rem;
+      color: var(--warning-color);
+      margin-bottom: 20px;
+      border-radius: 0 3px 3px 0;
+    }
+
+    @media (max-width: 899px) {
+      .log-spread {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .log-spread::before {
+        display: none;
+      }
+
+      .log-page {
+        padding: 32px 24px;
+      }
+
+      .log-page-left {
+        border-bottom: 1px solid var(--border-color);
+      }
+    }
+
     .header h1 {
       font-family: var(--font-serif);
       font-size: 2rem;
@@ -1200,8 +1518,349 @@
       }
     }
 
-    // Stage-3 mount point — replaced when the log UI is built out.
-    function renderLogView(/* entryId */) {}
+    // ─────────────────────────────────────────────────────────────
+    // Brew Log view rendering
+    // ─────────────────────────────────────────────────────────────
+    const LOG_FIELD_SCHEMA = [
+      {
+        section: 'beans', titleKey: 'secBeans',
+        fields: [
+          { key: 'name', labelKey: 'beansName' },
+          { key: 'origin', labelKey: 'beansOrigin' },
+          { key: 'roastDate', labelKey: 'beansRoastDate' },
+          { key: 'roastLevel', labelKey: 'beansRoastLevel' }
+        ]
+      },
+      {
+        section: 'grinder', titleKey: 'secGrinder',
+        fields: [
+          { key: 'model', labelKey: 'grinderModel' },
+          { key: 'setting', labelKey: 'grinderSetting' },
+          { key: 'distributionNote', labelKey: 'grinderDistribution' }
+        ]
+      },
+      {
+        section: 'brew', titleKey: 'secBrew',
+        fields: [
+          { key: 'method', labelKey: 'brewMethod' },
+          { key: 'dripper', labelKey: 'brewDripper' },
+          { key: 'waterTempC', labelKey: 'brewWaterTemp' },
+          { key: 'dose', labelKey: 'brewDose' },
+          { key: 'yield', labelKey: 'brewYield' },
+          { key: 'totalTimeSec', labelKey: 'brewTime' },
+          { key: 'pourSegments', labelKey: 'brewPours' }
+        ]
+      },
+      {
+        section: 'extraction', titleKey: 'secExtraction',
+        fields: [
+          { key: 'tds', labelKey: 'extractionTds' },
+          { key: 'ey', labelKey: 'extractionEy' }
+        ]
+      }
+    ];
+
+    // Short provisional labels (Chinese first; full i18n lands in stage 6).
+    const LOG_LABELS = {
+      zh: {
+        tabConverter: '换算', tabLog: '日志',
+        newEntry: '+ 新建', importBtn: '导入', exportBtn: '导出',
+        empty: '— 还是空白的 —', newFirst: '+ 新建一篇',
+        discard: '丢弃此页',
+        discardConfirm: '确定丢弃这一页？此操作不可撤销。',
+        corrupt: '读取到损坏的日志数据，已忽略无法解析的记录。',
+        importPrompt: '粘贴日志 JSON（或取消）',
+        importOk: (n) => `导入 ${n} 条`,
+        importNone: '没有新增记录',
+        weatherPh: '天气',
+        secBeans: '豆子', secGrinder: '磨豆机', secBrew: '冲煮', secExtraction: '萃取',
+        secFlavor: '风味', secReflection: '复盘',
+        beansName: '名称', beansOrigin: '产地', beansRoastDate: '烘焙日期', beansRoastLevel: '烘焙度',
+        grinderModel: '机型', grinderSetting: '刻度', grinderDistribution: '分布感受',
+        brewMethod: '方式', brewDripper: '滤杯', brewWaterTemp: '水温 °C', brewDose: '粉量 g',
+        brewYield: '出液 g', brewTime: '总时间 s', brewPours: '注水',
+        extractionTds: 'TDS %', extractionEy: '萃取率 %',
+        fieldPh: '⋯⋯', prosePh: '写点什么…',
+        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+      },
+      en: {
+        tabConverter: 'Converter', tabLog: 'Journal',
+        newEntry: '+ New', importBtn: 'Import', exportBtn: 'Export',
+        empty: '— still blank —', newFirst: '+ Start a page',
+        discard: 'discard this page',
+        discardConfirm: 'Discard this page? This cannot be undone.',
+        corrupt: 'Some log entries were unreadable and have been skipped.',
+        importPrompt: 'Paste journal JSON (or cancel)',
+        importOk: (n) => `imported ${n}`,
+        importNone: 'nothing new to import',
+        weatherPh: 'weather',
+        secBeans: 'Beans', secGrinder: 'Grinder', secBrew: 'Brew', secExtraction: 'Extraction',
+        secFlavor: 'Flavor', secReflection: 'Reflection',
+        beansName: 'name', beansOrigin: 'origin', beansRoastDate: 'roast date', beansRoastLevel: 'roast',
+        grinderModel: 'model', grinderSetting: 'setting', grinderDistribution: 'distribution',
+        brewMethod: 'method', brewDripper: 'dripper', brewWaterTemp: 'water °C', brewDose: 'dose g',
+        brewYield: 'yield g', brewTime: 'time s', brewPours: 'pours',
+        extractionTds: 'TDS %', extractionEy: 'EY %',
+        fieldPh: '⋯⋯', prosePh: 'write something…',
+        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+      }
+    };
+
+    function logLabels() { return LOG_LABELS[currentLang] || LOG_LABELS.zh; }
+
+    function formatLogDate(isoDate, lang) {
+      if (!isoDate) return '';
+      const d = new Date(isoDate + 'T00:00:00');
+      if (isNaN(d.getTime())) return isoDate;
+      const weekdayZh = ['日', '一', '二', '三', '四', '五', '六'];
+      const weekdayEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      if (lang === 'en') {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${weekdayEn[d.getDay()]}`;
+      }
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}年${m}月${day}日  周${weekdayZh[d.getDay()]}`;
+    }
+
+    function getPath(obj, path) {
+      return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+    }
+
+    function clearChildren(node) {
+      while (node && node.firstChild) node.removeChild(node.firstChild);
+    }
+
+    function el(tag, opts, children) {
+      const node = document.createElement(tag);
+      if (opts) {
+        for (const [k, v] of Object.entries(opts)) {
+          if (v == null || v === false) continue;
+          if (k === 'class') node.className = v;
+          else if (k === 'text') node.textContent = v;
+          else if (k === 'dataset') Object.assign(node.dataset, v);
+          else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+          else node.setAttribute(k, v);
+        }
+      }
+      if (Array.isArray(children)) {
+        for (const c of children) if (c) node.appendChild(c);
+      }
+      return node;
+    }
+
+    function renderLogView(entryId) {
+      const root = document.getElementById('logView');
+      if (!root) return;
+      clearChildren(root);
+
+      const L = logLabels();
+      const { entries, corrupt } = BrewLog.load();
+      const shell = el('div', { class: 'log-shell' });
+
+      const toolbar = el('div', { class: 'log-toolbar' }, [
+        el('div', { class: 'log-toolbar-group' }, [
+          el('button', {
+            class: 'log-tool-btn primary',
+            type: 'button',
+            text: L.newEntry,
+            onclick: onNewEntry
+          })
+        ]),
+        el('div', { class: 'log-toolbar-group' }, [
+          el('button', { class: 'log-tool-btn', type: 'button', text: L.importBtn, onclick: onImport }),
+          el('button', { class: 'log-tool-btn', type: 'button', text: L.exportBtn, onclick: onExport })
+        ])
+      ]);
+      shell.appendChild(toolbar);
+
+      if (corrupt) {
+        shell.appendChild(el('div', { class: 'log-corrupt-banner', text: L.corrupt }));
+      }
+
+      if (entries.length === 0) {
+        shell.appendChild(el('div', { class: 'log-empty' }, [
+          el('div', { class: 'log-empty-msg', text: L.empty }),
+          el('button', {
+            class: 'log-tool-btn primary', type: 'button',
+            text: L.newFirst, onclick: onNewEntry
+          })
+        ]));
+        root.appendChild(shell);
+        return;
+      }
+
+      let idx = entryId ? entries.findIndex(e => e.id === entryId) : -1;
+      if (idx < 0) idx = 0;
+      const entry = entries[idx];
+
+      shell.appendChild(renderSpread(entry));
+      shell.appendChild(renderPager(entries, idx));
+      shell.appendChild(renderFooterActions(entry));
+
+      root.appendChild(shell);
+    }
+
+    function renderSpread(entry) {
+      const L = logLabels();
+      const leftPage = el('section', { class: 'log-page log-page-left' });
+
+      leftPage.appendChild(el('div', { class: 'log-date-bar' }, [
+        el('span', {
+          class: 'log-date log-editable',
+          'data-field': 'date',
+          'data-type': 'date',
+          text: formatLogDate(entry.date, currentLang)
+        }),
+        el('span', {
+          class: 'log-weather log-editable',
+          'data-field': 'weather',
+          'data-placeholder': L.weatherPh,
+          text: entry.weather || ''
+        })
+      ]));
+
+      for (const sec of LOG_FIELD_SCHEMA) {
+        const fieldsGrid = el('div', { class: 'log-fields' });
+        for (const f of sec.fields) {
+          const path = `${sec.section}.${f.key}`;
+          const val = getPath(entry, path);
+          const isEmpty = val == null || val === '';
+          fieldsGrid.appendChild(el('div', { class: 'log-field-label', text: L[f.labelKey] }));
+          fieldsGrid.appendChild(el('div', {
+            class: 'log-field-value log-editable' + (isEmpty ? ' is-empty' : ''),
+            'data-field': path,
+            'data-placeholder': L.fieldPh,
+            text: isEmpty ? '' : String(val)
+          }));
+        }
+        leftPage.appendChild(el('section', { class: 'log-section' }, [
+          el('div', { class: 'log-section-title', text: L[sec.titleKey] }),
+          fieldsGrid
+        ]));
+      }
+
+      const rightPage = el('section', { class: 'log-page log-page-right' });
+
+      rightPage.appendChild(el('section', { class: 'log-section' }, [
+        el('div', { class: 'log-section-title', text: L.secFlavor }),
+        el('div', {
+          class: 'log-prose log-editable' + (entry.flavorNotes ? '' : ' is-empty'),
+          'data-field': 'flavorNotes',
+          'data-placeholder': L.prosePh,
+          text: entry.flavorNotes || ''
+        })
+      ]));
+
+      rightPage.appendChild(el('section', { class: 'log-section' }, [
+        el('div', { class: 'log-section-title', text: L.secReflection }),
+        el('div', {
+          class: 'log-prose log-editable' + (entry.reflection ? '' : ' is-empty'),
+          'data-field': 'reflection',
+          'data-placeholder': L.prosePh,
+          text: entry.reflection || ''
+        })
+      ]));
+
+      const rating = Math.max(0, Math.min(5, Number(entry.rating) || 0));
+      const ratingEl = el('div', { class: 'log-rating', role: 'radiogroup', 'aria-label': 'rating' });
+      for (let i = 1; i <= 5; i++) {
+        ratingEl.appendChild(el('span', {
+          class: 'log-star' + (i <= rating ? '' : ' is-empty'),
+          'data-rating': String(i),
+          role: 'radio',
+          'aria-checked': i === rating ? 'true' : 'false',
+          tabindex: '0',
+          text: i <= rating ? '✦' : '✧'
+        }));
+      }
+      rightPage.appendChild(ratingEl);
+
+      return el('article', { class: 'log-spread', 'data-entry-id': entry.id }, [leftPage, rightPage]);
+    }
+
+    function renderPager(entries, idx) {
+      const L = logLabels();
+      const prev = el('button', {
+        class: 'log-pager-btn', type: 'button', 'aria-label': 'previous page', text: '◀'
+      });
+      const next = el('button', {
+        class: 'log-pager-btn', type: 'button', 'aria-label': 'next page', text: '▶'
+      });
+      if (idx <= 0) prev.disabled = true;
+      if (idx >= entries.length - 1) next.disabled = true;
+      prev.addEventListener('click', () => {
+        if (idx > 0) navigate('#/log/' + entries[idx - 1].id);
+      });
+      next.addEventListener('click', () => {
+        if (idx < entries.length - 1) navigate('#/log/' + entries[idx + 1].id);
+      });
+      return el('nav', { class: 'log-pager', 'aria-label': 'page navigation' }, [
+        prev,
+        el('span', { class: 'log-pager-label', text: L.pagerLabel(idx + 1, entries.length) }),
+        next
+      ]);
+    }
+
+    function renderFooterActions(entry) {
+      const L = logLabels();
+      return el('div', { class: 'log-footer-actions' }, [
+        el('button', {
+          class: 'log-discard', type: 'button', text: L.discard,
+          onclick: () => onDiscard(entry.id)
+        })
+      ]);
+    }
+
+    function onNewEntry() {
+      const { entries } = BrewLog.load();
+      const entry = BrewLog.createEntry();
+      BrewLog.save([entry, ...entries]);
+      navigate('#/log/' + entry.id);
+    }
+
+    function onDiscard(id) {
+      const L = logLabels();
+      if (typeof confirm !== 'function' || !confirm(L.discardConfirm)) return;
+      const { entries } = BrewLog.load();
+      const next = entries.filter(e => e.id !== id);
+      BrewLog.save(next);
+      navigate(next.length ? '#/log/' + next[0].id : '#/log');
+    }
+
+    function onImport() {
+      const L = logLabels();
+      if (typeof prompt !== 'function') return;
+      const raw = prompt(L.importPrompt);
+      if (!raw) return;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { return; }
+      const incoming = BrewLog.extractEntries(parsed);
+      if (!incoming) return;
+      const { entries } = BrewLog.load();
+      const { entries: merged, added } = BrewLog.mergeImport(entries, incoming);
+      BrewLog.save(merged);
+      if (typeof alert === 'function') {
+        alert(added > 0 ? L.importOk(added) : L.importNone);
+      }
+      applyRoute();
+    }
+
+    function onExport() {
+      const { entries } = BrewLog.load();
+      const payload = BrewLog.exportPayload(entries);
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `brew-log-${BrewLog.todayISO()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
 
     // Arrow bounce helper
     const arrowEl = document.getElementById('directionArrow');
