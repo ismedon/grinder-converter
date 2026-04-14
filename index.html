@@ -814,6 +814,32 @@
       color: var(--success-color);
     }
 
+    .log-link-btn {
+      display: block;
+      margin: 14px auto 0;
+      padding: 8px 14px;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      border-bottom: 1px dotted transparent;
+      transition: color 0.2s, border-color 0.2s;
+      min-height: 36px;
+    }
+
+    .log-link-btn:hover {
+      color: var(--text-primary);
+      border-bottom-color: var(--text-primary);
+    }
+
+    .log-link-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
     /* Warning */
     .warning {
       display: none;
@@ -1020,6 +1046,7 @@
             <span class="brew-method-label" id="recommendLabel">推荐冲煮方式：</span>
             <span class="brew-method-value" id="brewMethod">V60 / 手冲</span>
           </div>
+          <button type="button" class="log-link-btn" id="logLinkBtn">记录这次冲煮 →</button>
         </div>
         <div class="warning" id="warning" role="alert" aria-live="assertive">
           <span id="warningText">刻度超出常用范围</span>
@@ -1097,6 +1124,9 @@
         sourceLabel: "源设备",
         targetLabel: "目标设备",
         resultRegion: "转换结果",
+        tabConverter: "换算",
+        tabLog: "日志",
+        recordThisBrew: "记录这次冲煮 →",
         grinders: {
           c40: "Comandante C40",
           kUltra: "1Zpresso K-Ultra",
@@ -1136,6 +1166,9 @@
         sourceLabel: "Source grinder",
         targetLabel: "Target grinder",
         resultRegion: "Conversion result",
+        tabConverter: "Converter",
+        tabLog: "Journal",
+        recordThisBrew: "Record this brew →",
         grinders: {
           c40: "Comandante C40",
           kUltra: "1Zpresso K-Ultra",
@@ -1187,7 +1220,10 @@
       notationDesc: document.getElementById('notationDesc'),
       notationExample: document.getElementById('notationExample'),
       disclaimer: document.getElementById('disclaimer'),
-      directionArrow: document.getElementById('directionArrow')
+      directionArrow: document.getElementById('directionArrow'),
+      viewBtnConverter: document.getElementById('viewBtnConverter'),
+      viewBtnLog: document.getElementById('viewBtnLog'),
+      logLinkBtn: document.getElementById('logLinkBtn')
     };
 
     // Conversion functions
@@ -1335,6 +1371,11 @@
 
       // Update result unit based on target grinder
       elements.resultUnit.textContent = t.units[targetGrinder];
+
+      // View-switcher tabs + log-link button
+      if (elements.viewBtnConverter) elements.viewBtnConverter.textContent = t.tabConverter;
+      if (elements.viewBtnLog) elements.viewBtnLog.textContent = t.tabLog;
+      if (elements.logLinkBtn) elements.logLinkBtn.textContent = t.recordThisBrew;
     }
 
     // Update input field attributes based on source grinder
@@ -2061,9 +2102,14 @@
         btn.classList.add('active');
         currentLang = btn.dataset.lang;
         document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
-        fadeSwitch(() => { updateTexts(); convert(); });
+        fadeSwitch(() => { updateTexts(); convert(); applyRoute(); });
       });
     });
+
+    // '记录这次冲煮 →' link: jump to log view with a fresh blank page.
+    if (elements.logLinkBtn) {
+      elements.logLinkBtn.addEventListener('click', onNewEntry);
+    }
 
     // Source grinder select
     elements.sourceSelect.addEventListener('change', () => {
