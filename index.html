@@ -1970,7 +1970,24 @@
 
     function logLabels() { return LOG_LABELS[currentLang] || LOG_LABELS.zh; }
 
-    function formatLogDate(isoDate) {
+    function formatLogDate(isoDate, lang) {
+      if (!isoDate) return '';
+      const d = new Date(isoDate + 'T00:00:00');
+      if (isNaN(d.getTime())) return isoDate;
+      const weekdayZh = ['日', '一', '二', '三', '四', '五', '六'];
+      const weekdayEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      if (lang === 'en') {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${weekdayEn[d.getDay()]}`;
+      }
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}年${m}月${day}日  周${weekdayZh[d.getDay()]}`;
+    }
+
+    function formatRoastDate(isoDate) {
       if (!isoDate) return '';
       const d = new Date(isoDate + 'T00:00:00');
       if (isNaN(d.getTime())) return isoDate;
@@ -2323,7 +2340,7 @@
     function renderDateTrigger(entry) {
       const L = logLabels();
       const iso = entry.beans && entry.beans.roastDate;
-      const label = iso ? formatLogDate(iso, currentLang) : '';
+      const label = iso ? formatRoastDate(iso) : '';
       const isEmpty = !label;
       const btn = el('button', {
         class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
@@ -2341,7 +2358,7 @@
     function refreshDateTrigger(btn, entry) {
       const L = logLabels();
       const iso = entry.beans && entry.beans.roastDate;
-      const label = iso ? formatLogDate(iso, currentLang) : '';
+      const label = iso ? formatRoastDate(iso) : '';
       btn.textContent = label || L.pickerPh;
       btn.classList.toggle('is-empty', !label);
     }
