@@ -1690,7 +1690,7 @@
           date: todayISO(),
           weather: '',
           beans: { name: '', origin: '', roastDate: '', roastLevel: '' },
-          grinder: { model: '', setting: '', distributionNote: '' },
+          grinder: { model: '', setting: '' },
           brew: {
             method: '', dripper: '', waterTempC: '',
             dose: '', yield: '', totalTimeSec: '', pourSegments: ''
@@ -1722,7 +1722,7 @@
         // Nested groups: only copy recognised primitive subfields
         const groups = {
           beans: ['name', 'origin', 'roastDate', 'roastLevel'],
-          grinder: ['model', 'setting', 'distributionNote'],
+          grinder: ['model', 'setting'],
           brew: ['method', 'dripper', 'waterTempC', 'dose', 'yield',
                  'totalTimeSec', 'pourSegments'],
           extraction: ['tds', 'ey']
@@ -1877,8 +1877,7 @@
         section: 'grinder', titleKey: 'secGrinder',
         fields: [
           { key: 'model', labelKey: 'grinderModel' },
-          { key: 'setting', labelKey: 'grinderSetting' },
-          { key: 'distributionNote', labelKey: 'grinderDistribution' }
+          { key: 'setting', labelKey: 'grinderSetting' }
         ]
       },
       {
@@ -1918,7 +1917,7 @@
         secBeans: '豆子', secGrinder: '磨豆机', secBrew: '冲煮', secExtraction: '萃取',
         secFlavor: '风味', secReflection: '复盘',
         beansName: '名称', beansOrigin: '产地', beansRoastDate: '烘焙日期', beansRoastLevel: '烘焙度',
-        grinderModel: '机型', grinderSetting: '刻度', grinderDistribution: '分布感受',
+        grinderModel: '机型', grinderSetting: '刻度',
         brewMethod: '方式', brewDripper: '滤杯', brewWaterTemp: '水温 °C', brewDose: '粉量 g',
         brewYield: '出液 g', brewTime: '总时间 s', brewPours: '注水',
         extractionTds: 'TDS %', extractionEy: '萃取率 %',
@@ -1947,7 +1946,7 @@
         secBeans: 'Beans', secGrinder: 'Grinder', secBrew: 'Brew', secExtraction: 'Extraction',
         secFlavor: 'Flavor', secReflection: 'Reflection',
         beansName: 'name', beansOrigin: 'origin', beansRoastDate: 'roast date', beansRoastLevel: 'roast',
-        grinderModel: 'model', grinderSetting: 'setting', grinderDistribution: 'distribution',
+        grinderModel: 'model', grinderSetting: 'setting',
         brewMethod: 'method', brewDripper: 'dripper', brewWaterTemp: 'water °C', brewDose: 'dose g',
         brewYield: 'yield g', brewTime: 'time s', brewPours: 'pours',
         extractionTds: 'TDS %', extractionEy: 'EY %',

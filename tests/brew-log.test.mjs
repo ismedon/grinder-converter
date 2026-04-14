@@ -89,7 +89,7 @@ test("createEntry returns all schema fields with sane defaults", () => {
   // Nested groups exist with all expected fields, all blank strings
   const expectedGroups = {
     beans: ["name", "origin", "roastDate", "roastLevel"],
-    grinder: ["model", "setting", "distributionNote"],
+    grinder: ["model", "setting"],
     brew: ["method", "dripper", "waterTempC", "dose", "yield", "totalTimeSec", "pourSegments"],
     extraction: ["tds", "ey"],
   };

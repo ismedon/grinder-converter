@@ -40,7 +40,7 @@ Hash router (`#/`, `#/log`, `#/log/<id>`) toggles between the converter and the 
 - **Schema** (`BrewLog.createEntry()` is the source of truth):
   - Top-level: `id`, `schemaVersion`, `createdAt` (ISO), `date` (`YYYY-MM-DD`), `weather`, `rating` (0–5 int), `flavorNotes`, `reflection`
   - `beans`: `name`, `origin`, `roastDate`, `roastLevel`
-  - `grinder`: `model`, `setting`, `distributionNote`
+  - `grinder`: `model`, `setting`
   - `brew`: `method`, `dripper`, `waterTempC`, `dose`, `yield`, `totalTimeSec`, `pourSegments`
   - `extraction`: `tds`, `ey`
 - **Sanitizer**: `sanitizeEntry()` drops malformed input (returns `null`) instead of throwing. Unknown fields are stripped; rating is clamped to integer 0–5.
