@@ -948,6 +948,155 @@
       }
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // BrewLog: brew-session journal (localStorage-backed)
+    // ─────────────────────────────────────────────────────────────
+    var BrewLog = (() => {
+      const STORAGE_KEY = 'grinder-brew-log-v1';
+      const SCHEMA_VERSION = 1;
+
+      function newId() {
+        // time-sortable 22-char id: 13-char base36 timestamp + 9-char random
+        const t = Date.now().toString(36).padStart(9, '0');
+        const r = Math.random().toString(36).slice(2, 11).padStart(9, '0');
+        return t + r;
+      }
+
+      function todayISO() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function createEntry(overrides) {
+        return {
+          id: newId(),
+          schemaVersion: SCHEMA_VERSION,
+          createdAt: new Date().toISOString(),
+          date: todayISO(),
+          weather: '',
+          beans: { name: '', origin: '', roastDate: '', roastLevel: '' },
+          grinder: { model: '', setting: '', distributionNote: '' },
+          brew: {
+            method: '', dripper: '', waterTempC: '',
+            dose: '', yield: '', totalTimeSec: '', pourSegments: ''
+          },
+          extraction: { tds: '', ey: '' },
+          rating: 0,
+          flavorNotes: '',
+          reflection: '',
+          ...(overrides || {})
+        };
+      }
+
+      // Validate a single entry loosely — drop malformed records, never throw
+      function sanitizeEntry(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+        if (typeof raw.id !== 'string' || !raw.id) return null;
+        const base = createEntry({ id: raw.id });
+        // Shallow-merge known scalar fields
+        for (const k of ['schemaVersion', 'createdAt', 'date', 'weather',
+                         'rating', 'flavorNotes', 'reflection']) {
+          if (k in raw) base[k] = raw[k];
+        }
+        // Nested groups: only copy recognised subfields
+        const groups = {
+          beans: ['name', 'origin', 'roastDate', 'roastLevel'],
+          grinder: ['model', 'setting', 'distributionNote'],
+          brew: ['method', 'dripper', 'waterTempC', 'dose', 'yield',
+                 'totalTimeSec', 'pourSegments'],
+          extraction: ['tds', 'ey']
+        };
+        for (const [g, fields] of Object.entries(groups)) {
+          const src = raw[g];
+          if (src && typeof src === 'object') {
+            for (const f of fields) if (f in src) base[g][f] = src[f];
+          }
+        }
+        // Rating must be integer 0-5
+        const r = Number(base.rating);
+        base.rating = Number.isFinite(r) ? Math.max(0, Math.min(5, Math.round(r))) : 0;
+        return base;
+      }
+
+      function load() {
+        try {
+          const raw = (typeof localStorage !== 'undefined')
+            ? localStorage.getItem(STORAGE_KEY) : null;
+          if (!raw) return { entries: [], corrupt: false };
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return { entries: [], corrupt: true };
+          const entries = parsed.map(sanitizeEntry).filter(Boolean);
+          return { entries, corrupt: false };
+        } catch (_) {
+          return { entries: [], corrupt: true };
+        }
+      }
+
+      function save(entries) {
+        try {
+          if (typeof localStorage === 'undefined') return { ok: false, reason: 'unavailable' };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+          return { ok: true };
+        } catch (err) {
+          const reason = (err && err.name === 'QuotaExceededError') ? 'quota' : 'unknown';
+          return { ok: false, reason };
+        }
+      }
+
+      // Merge an import payload into existing entries; id collisions keep newest by createdAt.
+      function mergeImport(existing, incoming) {
+        if (!Array.isArray(incoming)) return { entries: existing, added: 0, skipped: 0 };
+        const byId = new Map(existing.map(e => [e.id, e]));
+        let added = 0;
+        let skipped = 0;
+        for (const raw of incoming) {
+          const clean = sanitizeEntry(raw);
+          if (!clean) { skipped++; continue; }
+          const prev = byId.get(clean.id);
+          if (!prev) { byId.set(clean.id, clean); added++; continue; }
+          // Collision: keep whichever has the later createdAt (string compare works for ISO)
+          if ((clean.createdAt || '') > (prev.createdAt || '')) {
+            byId.set(clean.id, clean);
+          } else {
+            skipped++;
+          }
+        }
+        return { entries: Array.from(byId.values()), added, skipped };
+      }
+
+      function exportPayload(entries) {
+        return {
+          schemaVersion: SCHEMA_VERSION,
+          exportedAt: new Date().toISOString(),
+          entries: entries
+        };
+      }
+
+      // Accept either a raw array or an export payload { entries: [...] }
+      function extractEntries(parsed) {
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && Array.isArray(parsed.entries)) return parsed.entries;
+        return null;
+      }
+
+      return {
+        STORAGE_KEY,
+        SCHEMA_VERSION,
+        createEntry,
+        sanitizeEntry,
+        load,
+        save,
+        mergeImport,
+        exportPayload,
+        extractEntries,
+        todayISO,
+        newId
+      };
+    })();
+
     // Arrow bounce helper
     const arrowEl = document.getElementById('directionArrow');
     function bounceArrow() {
