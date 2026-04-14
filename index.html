@@ -1869,7 +1869,7 @@
         fields: [
           { key: 'name', labelKey: 'beansName' },
           { key: 'origin', labelKey: 'beansOrigin' },
-          { key: 'roastDate', labelKey: 'beansRoastDate' },
+          { key: 'roastDate', labelKey: 'beansRoastDate', picker: 'date' },
           { key: 'roastLevel', labelKey: 'beansRoastLevel', picker: 'level' }
         ]
       },
@@ -2097,6 +2097,8 @@
 
           if (f.picker === 'level') {
             fieldsGrid.appendChild(renderLevelTrigger(entry));
+          } else if (f.picker === 'date') {
+            fieldsGrid.appendChild(renderDateTrigger(entry));
           } else {
             fieldsGrid.appendChild(el('div', {
               class: 'log-field-value log-editable' + (isEmpty ? ' is-empty' : ''),
@@ -2322,6 +2324,158 @@
           });
           pop.appendChild(opt);
         }
+      });
+    }
+
+    function renderDateTrigger(entry) {
+      const L = logLabels();
+      const iso = entry.beans && entry.beans.roastDate;
+      const label = iso ? formatLogDate(iso, currentLang) : '';
+      const isEmpty = !label;
+      const btn = el('button', {
+        class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
+        type: 'button',
+        'aria-haspopup': 'dialog',
+        text: isEmpty ? L.pickerPh : label
+      });
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCalendarPopover(btn, entry);
+      });
+      return btn;
+    }
+
+    function refreshDateTrigger(btn, entry) {
+      const L = logLabels();
+      const iso = entry.beans && entry.beans.roastDate;
+      const label = iso ? formatLogDate(iso, currentLang) : '';
+      btn.textContent = label || L.pickerPh;
+      btn.classList.toggle('is-empty', !label);
+    }
+
+    function parseIsoDate(iso) {
+      if (typeof iso !== 'string') return null;
+      const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return null;
+      const y = +m[1], mo = +m[2], d = +m[3];
+      const dt = new Date(y, mo - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+      return dt;
+    }
+
+    function formatIsoDate(y, m, d) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    function openCalendarPopover(triggerEl, entry) {
+      const selected = parseIsoDate(entry.beans && entry.beans.roastDate);
+      const anchor = selected || new Date();
+      const state = { year: anchor.getFullYear(), month: anchor.getMonth() };
+
+      openPopover(triggerEl, 'log-calendar', (pop) => {
+        const L = logLabels();
+        const header = el('div', { class: 'log-cal-header' });
+        const prevBtn = el('button', {
+          class: 'log-cal-nav', type: 'button',
+          'aria-label': L.calendarPrev, text: '‹'
+        });
+        const nextBtn = el('button', {
+          class: 'log-cal-nav', type: 'button',
+          'aria-label': L.calendarNext, text: '›'
+        });
+        const title = el('div', { class: 'log-cal-title' });
+        header.appendChild(prevBtn);
+        header.appendChild(title);
+        header.appendChild(nextBtn);
+
+        const weekdays = el('div', { class: 'log-cal-weekdays' });
+        for (const wd of L.calendarWeekdays) {
+          weekdays.appendChild(el('div', { class: 'log-cal-wd', text: wd }));
+        }
+
+        const grid = el('div', { class: 'log-cal-grid' });
+        pop.appendChild(header);
+        pop.appendChild(weekdays);
+        pop.appendChild(grid);
+
+        prevBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (state.month === 0) { state.month = 11; state.year -= 1; }
+          else { state.month -= 1; }
+          renderGrid();
+        });
+        nextBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (state.month === 11) { state.month = 0; state.year += 1; }
+          else { state.month += 1; }
+          renderGrid();
+        });
+
+        function renderGrid() {
+          const LL = logLabels();
+          title.textContent = LL.calendarTitle(state.year, state.month + 1);
+          clearChildren(grid);
+
+          const firstDow = new Date(state.year, state.month, 1).getDay();
+          const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
+          const daysInPrev = new Date(state.year, state.month, 0).getDate();
+          const sel = parseIsoDate(entry.beans && entry.beans.roastDate);
+          const today = new Date();
+
+          for (let i = 0; i < 42; i++) {
+            let dayNum, cellYear, cellMonth, isOther = false;
+            if (i < firstDow) {
+              dayNum = daysInPrev - firstDow + 1 + i;
+              cellMonth = state.month - 1;
+              cellYear = state.year;
+              if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
+              isOther = true;
+            } else if (i >= firstDow + daysInMonth) {
+              dayNum = i - firstDow - daysInMonth + 1;
+              cellMonth = state.month + 1;
+              cellYear = state.year;
+              if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
+              isOther = true;
+            } else {
+              dayNum = i - firstDow + 1;
+              cellMonth = state.month;
+              cellYear = state.year;
+            }
+
+            const isToday = today.getFullYear() === cellYear
+                         && today.getMonth() === cellMonth
+                         && today.getDate() === dayNum;
+            const isSelected = sel
+                         && sel.getFullYear() === cellYear
+                         && sel.getMonth() === cellMonth
+                         && sel.getDate() === dayNum;
+
+            let cls = 'log-cal-day';
+            if (isOther) cls += ' is-other';
+            if (isToday) cls += ' is-today';
+            if (isSelected) cls += ' is-selected';
+
+            const cell = el('button', {
+              class: cls, type: 'button', text: String(dayNum)
+            });
+            cell.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const iso = formatIsoDate(cellYear, cellMonth + 1, dayNum);
+              const { entries } = BrewLog.load();
+              const stored = entries.find(en => en.id === entry.id);
+              if (!stored) { closeActivePopover(); return; }
+              const next = stored.beans.roastDate === iso ? '' : iso;
+              stored.beans.roastDate = next;
+              entry.beans.roastDate = next;
+              BrewLog.save(entries);
+              refreshDateTrigger(triggerEl, entry);
+              closeActivePopover();
+            });
+            grid.appendChild(cell);
+          }
+        }
+
+        renderGrid();
       });
     }
 
