@@ -317,6 +317,31 @@
       font-style: italic;
     }
 
+    .log-editable {
+      outline: none;
+    }
+
+    .log-field-value.log-editable:focus,
+    .log-field-value.log-editable:hover {
+      border-bottom-color: var(--border-color);
+    }
+
+    .log-field-value.log-editable:focus {
+      border-bottom-color: var(--accent-color);
+      background: rgba(107, 124, 94, 0.04);
+    }
+
+    .log-prose.log-editable:focus {
+      background: rgba(107, 124, 94, 0.04);
+      box-shadow: inset 0 -1px 0 var(--accent-color);
+    }
+
+    .log-date.log-editable:focus,
+    .log-weather.log-editable:focus {
+      background: rgba(107, 124, 94, 0.04);
+      border-radius: 2px;
+    }
+
     .log-prose {
       min-height: 110px;
       line-height: 1.75;
@@ -1710,12 +1735,15 @@
       leftPage.appendChild(el('div', { class: 'log-date-bar' }, [
         el('span', {
           class: 'log-date log-editable',
+          contenteditable: 'true',
+          spellcheck: 'false',
           'data-field': 'date',
           'data-type': 'date',
           text: formatLogDate(entry.date, currentLang)
         }),
         el('span', {
           class: 'log-weather log-editable',
+          contenteditable: 'true',
           'data-field': 'weather',
           'data-placeholder': L.weatherPh,
           text: entry.weather || ''
@@ -1731,6 +1759,7 @@
           fieldsGrid.appendChild(el('div', { class: 'log-field-label', text: L[f.labelKey] }));
           fieldsGrid.appendChild(el('div', {
             class: 'log-field-value log-editable' + (isEmpty ? ' is-empty' : ''),
+            contenteditable: 'true',
             'data-field': path,
             'data-placeholder': L.fieldPh,
             text: isEmpty ? '' : String(val)
@@ -1748,6 +1777,7 @@
         el('div', { class: 'log-section-title', text: L.secFlavor }),
         el('div', {
           class: 'log-prose log-editable' + (entry.flavorNotes ? '' : ' is-empty'),
+          contenteditable: 'true',
           'data-field': 'flavorNotes',
           'data-placeholder': L.prosePh,
           text: entry.flavorNotes || ''
@@ -1758,6 +1788,7 @@
         el('div', { class: 'log-section-title', text: L.secReflection }),
         el('div', {
           class: 'log-prose log-editable' + (entry.reflection ? '' : ' is-empty'),
+          contenteditable: 'true',
           'data-field': 'reflection',
           'data-placeholder': L.prosePh,
           text: entry.reflection || ''
@@ -1846,6 +1877,102 @@
         alert(added > 0 ? L.importOk(added) : L.importNone);
       }
       applyRoute();
+    }
+
+    // Write a value at a dotted path on a plain object; creates intermediate objects if missing.
+    function setPath(obj, path, value) {
+      const parts = path.split('.');
+      let cur = obj;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (cur[parts[i]] == null || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+        cur = cur[parts[i]];
+      }
+      cur[parts[parts.length - 1]] = value;
+    }
+
+    function findEditableHost(target) {
+      if (!target || !target.classList || !target.classList.contains('log-editable')) return null;
+      const article = target.closest ? target.closest('.log-spread') : null;
+      if (!article) return null;
+      const id = article.dataset ? article.dataset.entryId : null;
+      if (!id) return null;
+      return { el: target, entryId: id };
+    }
+
+    function onEditableFocus(e) {
+      const host = findEditableHost(e.target);
+      if (!host) return;
+      host.el.classList.remove('is-empty');
+      if (host.el.dataset.type === 'date') {
+        const { entries } = BrewLog.load();
+        const entry = entries.find(en => en.id === host.entryId);
+        if (entry) host.el.textContent = entry.date || '';
+      }
+    }
+
+    function onEditableBlur(e) {
+      const host = findEditableHost(e.target);
+      if (!host) return;
+      const path = host.el.dataset.field;
+      if (!path) return;
+      const { entries } = BrewLog.load();
+      const entry = entries.find(en => en.id === host.entryId);
+      if (!entry) return;
+
+      let newValue = (host.el.textContent || '').trim();
+
+      if (host.el.dataset.type === 'date') {
+        const parsed = new Date(newValue + 'T00:00:00');
+        if (!newValue || isNaN(parsed.getTime())) newValue = entry.date || '';
+        setPath(entry, path, newValue);
+        host.el.textContent = formatLogDate(newValue, currentLang);
+      } else {
+        setPath(entry, path, newValue);
+        host.el.textContent = newValue;
+      }
+
+      host.el.classList.toggle('is-empty', newValue === '');
+      BrewLog.save(entries);
+    }
+
+    function onLogClick(e) {
+      const star = e.target && e.target.closest ? e.target.closest('.log-star') : null;
+      if (!star) return;
+      const article = star.closest('.log-spread');
+      if (!article) return;
+      const id = article.dataset.entryId;
+      const rating = Number(star.dataset.rating) || 0;
+      const { entries } = BrewLog.load();
+      const entry = entries.find(en => en.id === id);
+      if (!entry) return;
+      entry.rating = entry.rating === rating ? 0 : rating;
+      BrewLog.save(entries);
+      applyRoute();
+    }
+
+    function onLogKeydown(e) {
+      const t = e.target;
+      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
+        if (t.isContentEditable && e.key === 'Enter' && !e.shiftKey) {
+          const path = t.dataset && t.dataset.field;
+          const isProse = t.classList && t.classList.contains('log-prose');
+          if (path && !isProse) { e.preventDefault(); t.blur(); }
+        }
+        return;
+      }
+      const logView = document.getElementById('logView');
+      if (!logView || logView.hidden) return;
+
+      if (e.key === 'ArrowLeft') {
+        const prev = logView.querySelector('.log-pager-btn[aria-label="previous page"]');
+        if (prev && !prev.disabled) { e.preventDefault(); prev.click(); }
+      } else if (e.key === 'ArrowRight') {
+        const next = logView.querySelector('.log-pager-btn[aria-label="next page"]');
+        if (next && !next.disabled) { e.preventDefault(); next.click(); }
+      } else if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        onNewEntry();
+      }
     }
 
     function onExport() {
@@ -1942,6 +2069,15 @@
     if (typeof window !== 'undefined') {
       window.addEventListener('hashchange', applyRoute);
     }
+
+    // Log-view delegated handlers (survive innerHTML rerenders)
+    const logRoot = document.getElementById('logView');
+    if (logRoot) {
+      logRoot.addEventListener('focusin', onEditableFocus);
+      logRoot.addEventListener('focusout', onEditableBlur);
+      logRoot.addEventListener('click', onLogClick);
+    }
+    document.addEventListener('keydown', onLogKeydown);
 
     // Initialize
     updateTexts();

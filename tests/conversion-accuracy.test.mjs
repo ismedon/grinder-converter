@@ -32,6 +32,7 @@ function loadConverterContext() {
   const elementCache = new Map();
   const documentStub = {
     documentElement: { lang: "zh-CN" },
+    body: makeElementStub(),
     getElementById(id) {
       if (!elementCache.has(id)) {
         elementCache.set(id, makeElementStub());
@@ -44,6 +45,11 @@ function loadConverterContext() {
     querySelectorAll() {
       return [];
     },
+    createElement() {
+      return makeElementStub();
+    },
+    addEventListener() {},
+    removeEventListener() {},
   };
 
   const context = { document: documentStub, console, setTimeout, clearTimeout };
