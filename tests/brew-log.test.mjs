@@ -182,6 +182,36 @@ test("sanitizeEntry rejects array as a nested group", () => {
   assert.equal(clean.beans.origin, "");
 });
 
+test("sanitizeEntry normalizes known Chinese roast level strings to enum keys", () => {
+  const { sanitizeEntry } = loadContext().BrewLog;
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "超浅烘" } }).beans.roastLevel, "veryLight");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "浅烘" } }).beans.roastLevel, "light");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "中烘" } }).beans.roastLevel, "medium");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "深烘" } }).beans.roastLevel, "dark");
+});
+
+test("sanitizeEntry normalizes English roast level strings case-insensitively", () => {
+  const { sanitizeEntry } = loadContext().BrewLog;
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "Light" } }).beans.roastLevel, "light");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "MEDIUM" } }).beans.roastLevel, "medium");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "Extra Light" } }).beans.roastLevel, "veryLight");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "  dark  " } }).beans.roastLevel, "dark", "whitespace trimmed");
+});
+
+test("sanitizeEntry passes valid enum keys through unchanged", () => {
+  const { sanitizeEntry } = loadContext().BrewLog;
+  for (const key of ["veryLight", "light", "medium", "dark"]) {
+    assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: key } }).beans.roastLevel, key);
+  }
+});
+
+test("sanitizeEntry drops unknown roast level strings to empty", () => {
+  const { sanitizeEntry } = loadContext().BrewLog;
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "french" } }).beans.roastLevel, "");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "🔥" } }).beans.roastLevel, "");
+  assert.equal(sanitizeEntry({ id: "a", beans: { roastLevel: "" } }).beans.roastLevel, "");
+});
+
 test("export → import roundtrip preserves every entry", () => {
   const ctx = loadContext();
   const { createEntry, exportPayload, extractEntries, mergeImport } = ctx.BrewLog;
