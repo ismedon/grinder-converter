@@ -2567,8 +2567,8 @@
       let newValue = (host.el.textContent || '').trim();
 
       if (host.el.dataset.type === 'date') {
-        const parsed = new Date(newValue + 'T00:00:00');
-        if (!newValue || isNaN(parsed.getTime())) newValue = entry.date || '';
+        const parsed = parseIsoDate(newValue);
+        if (!parsed) newValue = entry.date || '';
         setPath(entry, path, newValue);
         host.el.textContent = formatLogDate(newValue, currentLang);
       } else {
