@@ -19,10 +19,10 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="磨豆机刻度转换器">
 
-  <!-- Google Fonts: Noto Serif SC for headings -->
+  <!-- Google Fonts: Noto Serif SC (UI/labels) + Caveat & Ma Shan Zheng (handwritten input) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
 
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
@@ -37,6 +37,8 @@
       --success-color: #c45c3c;
       --warning-color: #7d6a38;
       --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+      --font-hand: "Caveat", "Ma Shan Zheng", "Kaiti SC", "KaiTi", serif;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     * {
@@ -108,7 +110,634 @@
     /* Header */
     .header {
       text-align: center;
-      margin-bottom: 48px;
+      margin-bottom: 32px;
+    }
+
+    /* View Switcher (换算 | 日志) */
+    .view-switcher {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .view-sep {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      user-select: none;
+      opacity: 0.5;
+    }
+
+    .view-btn {
+      padding: 8px 6px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-size: 0.9375rem;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+      border-bottom: 1px solid transparent;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    .view-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .view-btn.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--text-primary);
+    }
+
+    .view-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    .view[hidden] {
+      display: none;
+    }
+
+    /* ─── Brew Log view ───────────────────────────────────────── */
+    .log-shell {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .log-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .log-toolbar-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-tool-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      letter-spacing: 0.08em;
+      border-radius: 3px;
+      cursor: pointer;
+      min-height: 36px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .log-tool-btn:hover {
+      border-color: var(--accent-color);
+      color: var(--text-primary);
+    }
+
+    .log-tool-btn.primary {
+      color: var(--text-primary);
+      border-color: var(--text-primary);
+    }
+
+    .log-tool-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    /* Two-page spread — desktop */
+    @keyframes logPageMount {
+      from { opacity: 0; transform: translateX(6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-spread {
+      background: var(--card-bg);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.045'/%3E%3C/svg%3E");
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 560px;
+      position: relative;
+      animation: logPageMount 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Corner dot decoration */
+    .log-spread::after {
+      content: "· · · · ·";
+      position: absolute;
+      bottom: 14px;
+      right: 24px;
+      color: var(--text-secondary);
+      opacity: 0.35;
+      letter-spacing: 0.2em;
+      font-size: 0.75rem;
+      pointer-events: none;
+    }
+
+    .log-spread::before {
+      /* gutter: a subtle double-line down the middle like a stitched notebook */
+      content: "";
+      position: absolute;
+      top: 24px;
+      bottom: 24px;
+      left: 50%;
+      width: 1px;
+      background: var(--border-color);
+      box-shadow: -3px 0 0 -2px var(--border-color), 3px 0 0 -2px var(--border-color);
+      pointer-events: none;
+    }
+
+    .log-page {
+      padding: 40px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .log-page-left {
+      border-right: none;
+    }
+
+    .log-date-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 14px;
+      font-family: var(--font-serif);
+    }
+
+    .log-date {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--text-primary);
+      min-width: 1em;
+    }
+
+    .log-weather {
+      font-family: var(--font-hand);
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      min-width: 2em;
+      text-align: right;
+    }
+
+    .log-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .log-section-title {
+      font-family: var(--font-serif);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.18em;
+    }
+
+    .log-fields {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 14px;
+      font-size: 0.9375rem;
+    }
+
+    .log-field-label {
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      letter-spacing: 0.06em;
+      padding-top: 3px;
+      white-space: nowrap;
+    }
+
+    .log-field-value {
+      color: var(--text-primary);
+      font-family: var(--font-hand);
+      font-size: 1.1875rem;
+      min-height: 1.5em;
+      line-height: 1.4;
+      padding: 2px 4px;
+      border-radius: 2px;
+      border-bottom: 1px dotted transparent;
+      transition: border-color 0.2s;
+    }
+
+    .log-field-value:empty::before,
+    .log-field-value.is-empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-secondary);
+      opacity: 0.45;
+      font-style: italic;
+    }
+
+    .log-editable {
+      outline: none;
+    }
+
+    .log-field-value.log-editable:focus,
+    .log-field-value.log-editable:hover {
+      border-bottom-color: var(--border-color);
+    }
+
+    .log-field-value.log-editable:focus {
+      border-bottom-color: var(--accent-color);
+      background: rgba(107, 124, 94, 0.04);
+    }
+
+    .log-prose.log-editable:focus {
+      background: rgba(107, 124, 94, 0.04);
+      box-shadow: inset 0 -1px 0 var(--accent-color);
+    }
+
+    .log-date.log-editable:focus,
+    .log-weather.log-editable:focus {
+      background: rgba(107, 124, 94, 0.04);
+      border-radius: 2px;
+    }
+
+    .log-prose {
+      min-height: 110px;
+      line-height: 1.7;
+      font-family: var(--font-hand);
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      padding: 6px 8px;
+      border-radius: 2px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background-image: linear-gradient(to bottom,
+        transparent calc(1.7em - 1px),
+        var(--border-color) calc(1.7em - 1px),
+        var(--border-color) 1.7em,
+        transparent 1.7em);
+      background-size: 100% 1.7em;
+      background-position: 0 0.15em;
+      background-repeat: repeat-y;
+    }
+
+    .log-prose:empty::before,
+    .log-prose.is-empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-secondary);
+      opacity: 0.45;
+      font-style: italic;
+    }
+
+    .log-rating {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 1.25rem;
+      color: var(--accent-color);
+      letter-spacing: 0.2em;
+      user-select: none;
+    }
+
+    .log-star {
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px;
+      transition: transform 0.15s, color 0.15s;
+    }
+
+    .log-star:hover {
+      transform: scale(1.15);
+    }
+
+    .log-star.is-empty {
+      color: var(--text-secondary);
+      opacity: 0.4;
+    }
+
+    .log-pager {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+      font-family: var(--font-serif);
+      color: var(--text-secondary);
+    }
+
+    .log-pager-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 3px;
+      transition: color 0.2s;
+    }
+
+    .log-pager-btn:hover:not(:disabled) {
+      color: var(--text-primary);
+    }
+
+    .log-pager-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .log-pager-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    .log-pager-label {
+      font-size: 0.9375rem;
+      letter-spacing: 0.08em;
+      min-width: 80px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log-footer-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    .log-discard {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      opacity: 0.55;
+      padding: 8px 12px;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    .log-discard:hover {
+      opacity: 1;
+      color: var(--success-color);
+    }
+
+    /* Empty state */
+    .log-empty {
+      text-align: center;
+      padding: 80px 24px;
+      color: var(--text-secondary);
+      background: var(--card-bg);
+      border-radius: 4px;
+    }
+
+    .log-empty-msg {
+      font-family: var(--font-serif);
+      font-size: 1.125rem;
+      letter-spacing: 0.14em;
+      margin-bottom: 24px;
+      opacity: 0.7;
+    }
+
+    .log-corrupt-banner {
+      background: rgba(184, 134, 11, 0.1);
+      border-left: 2px solid var(--warning-color);
+      padding: 10px 14px;
+      font-size: 0.8125rem;
+      color: var(--warning-color);
+      margin-bottom: 20px;
+      border-radius: 0 3px 3px 0;
+    }
+
+    /* Click-to-open pickers (roast date calendar + roast level options) */
+    .log-field-trigger {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px dotted transparent;
+      padding: 2px 4px;
+      border-radius: 2px;
+      font-family: var(--font-hand);
+      font-size: 1.1875rem;
+      line-height: 1.4;
+      min-height: 1.5em;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: border-bottom-color 180ms var(--ease-out-expo),
+                  color 180ms var(--ease-out-expo);
+    }
+    .log-field-trigger:hover {
+      border-bottom-color: var(--accent-color);
+    }
+    .log-field-trigger:focus-visible {
+      outline: none;
+      border-bottom-color: var(--accent-color);
+    }
+    .log-field-trigger.is-empty {
+      color: var(--text-secondary);
+    }
+
+    .log-popover {
+      position: absolute;
+      z-index: 100;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(45, 42, 38, 0.14),
+                  0 1px 3px rgba(45, 42, 38, 0.08);
+      opacity: 0;
+      transform: translateY(-4px) scale(0.97);
+      transform-origin: top center;
+      transition: opacity 220ms var(--ease-out-expo),
+                  transform 220ms var(--ease-out-expo);
+      will-change: opacity, transform;
+    }
+    .log-popover.flip-up {
+      transform-origin: bottom center;
+      transform: translateY(4px) scale(0.97);
+    }
+    .log-popover.is-open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .log-popover.is-closing {
+      opacity: 0;
+      transform: translateY(-2px) scale(0.98);
+      transition-duration: 160ms;
+    }
+    .log-popover.flip-up.is-closing {
+      transform: translateY(2px) scale(0.98);
+    }
+
+    .log-level-picker {
+      padding: 6px;
+      min-width: 144px;
+    }
+    .log-level-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border: 0;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font: inherit;
+      font-family: var(--font-serif);
+      font-size: 0.875rem;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+      text-align: left;
+      transition: background-color 140ms var(--ease-out-expo),
+                  color 140ms var(--ease-out-expo);
+    }
+    .log-level-option:hover {
+      background: rgba(107, 124, 94, 0.08);
+    }
+    .log-level-option:focus-visible {
+      outline: none;
+      background: rgba(107, 124, 94, 0.12);
+    }
+    .log-level-option-dot {
+      flex: 0 0 auto;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: transparent;
+      transition: background-color 140ms var(--ease-out-expo);
+    }
+    .log-level-option.is-selected {
+      color: var(--accent-color);
+    }
+    .log-level-option.is-selected .log-level-option-dot {
+      background: var(--accent-color);
+    }
+
+    .log-calendar {
+      width: 252px;
+      padding: 14px;
+    }
+    .log-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .log-cal-title {
+      font-family: var(--font-serif);
+      font-size: 0.875rem;
+      letter-spacing: 0.06em;
+      color: var(--text-primary);
+    }
+    .log-cal-nav {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1;
+      transition: background-color 140ms var(--ease-out-expo),
+                  color 140ms var(--ease-out-expo);
+    }
+    .log-cal-nav:hover {
+      background: rgba(107, 124, 94, 0.08);
+      color: var(--text-primary);
+    }
+    .log-cal-nav:focus-visible {
+      outline: none;
+      background: rgba(107, 124, 94, 0.12);
+      color: var(--text-primary);
+    }
+    .log-cal-weekdays,
+    .log-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+    .log-cal-wd {
+      text-align: center;
+      font-size: 0.6875rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      padding: 4px 0;
+    }
+    .log-cal-grid {
+      margin-top: 4px;
+    }
+    .log-cal-day {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto;
+      border: 0;
+      background: transparent;
+      border-radius: 50%;
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+      transition: background-color 140ms var(--ease-out-expo),
+                  color 140ms var(--ease-out-expo),
+                  transform 80ms var(--ease-out-expo);
+    }
+    .log-cal-day:hover {
+      background: rgba(107, 124, 94, 0.10);
+    }
+    .log-cal-day:active {
+      transform: scale(0.92);
+    }
+    .log-cal-day:focus-visible {
+      outline: none;
+      background: rgba(107, 124, 94, 0.14);
+    }
+    .log-cal-day.is-other {
+      opacity: 0.28;
+    }
+    .log-cal-day.is-today {
+      box-shadow: inset 0 0 0 1px var(--accent-color);
+    }
+    .log-cal-day.is-selected {
+      background: var(--accent-color);
+      color: #faf8f4;
+    }
+    .log-cal-day.is-selected.is-today {
+      box-shadow: none;
+    }
+
+    @media (max-width: 899px) {
+      .log-spread {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .log-spread::before {
+        display: none;
+      }
+
+      .log-page {
+        padding: 32px 24px;
+      }
+
+      .log-page-left {
+        border-bottom: 1px solid var(--border-color);
+      }
     }
 
     .header h1 {
@@ -386,6 +1015,32 @@
       color: var(--success-color);
     }
 
+    .log-link-btn {
+      display: block;
+      margin: 14px auto 0;
+      padding: 8px 14px;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      border-bottom: 1px dotted transparent;
+      transition: color 0.2s, border-color 0.2s;
+      min-height: 36px;
+    }
+
+    .log-link-btn:hover {
+      color: var(--text-primary);
+      border-bottom-color: var(--text-primary);
+    }
+
+    .log-link-btn:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
     /* Warning */
     .warning {
       display: none;
@@ -459,6 +1114,17 @@
         --warning-color: #b8a060;
       }
 
+      .log-spread {
+        background-color: #2b2620;
+      }
+
+      .log-field-value.log-editable:focus,
+      .log-prose.log-editable:focus,
+      .log-date.log-editable:focus,
+      .log-weather.log-editable:focus {
+        background: rgba(138, 158, 122, 0.08);
+      }
+
       .grinder-select {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9287' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
       }
@@ -530,7 +1196,15 @@
       <p class="subtitle" id="subtitle">C40 ↔ K-Ultra ↔ EK43</p>
     </header>
 
+    <!-- View Switcher -->
+    <nav class="view-switcher" aria-label="视图切换">
+      <button class="view-btn active" data-view="converter" id="viewBtnConverter">换算</button>
+      <span class="view-sep" aria-hidden="true">｜</span>
+      <button class="view-btn" data-view="log" id="viewBtnLog">日志</button>
+    </nav>
+
     <main>
+    <div class="view" id="converterView">
     <!-- Direction Selection -->
     <div class="card">
       <div class="card-title" id="directionLabel">转换方向</div>
@@ -573,6 +1247,7 @@
             <span class="brew-method-label" id="recommendLabel">推荐冲煮方式：</span>
             <span class="brew-method-value" id="brewMethod">V60 / 手冲</span>
           </div>
+          <button type="button" class="log-link-btn" id="logLinkBtn">记录这次冲煮 →</button>
         </div>
         <div class="warning" id="warning" role="alert" aria-live="assertive">
           <span id="warningText">刻度超出常用范围</span>
@@ -594,6 +1269,11 @@
     <!-- Disclaimer -->
     <div class="disclaimer" id="disclaimer">
       转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调
+    </div>
+    </div><!-- /#converterView -->
+
+    <div class="view" id="logView" hidden>
+      <!-- Brew Log view — UI is mounted in stage 3 -->
     </div>
     </main>
   </div>
@@ -645,6 +1325,9 @@
         sourceLabel: "源设备",
         targetLabel: "目标设备",
         resultRegion: "转换结果",
+        tabConverter: "换算",
+        tabLog: "日志",
+        recordThisBrew: "记录这次冲煮 →",
         grinders: {
           c40: "Comandante C40",
           kUltra: "1Zpresso K-Ultra",
@@ -684,6 +1367,9 @@
         sourceLabel: "Source grinder",
         targetLabel: "Target grinder",
         resultRegion: "Conversion result",
+        tabConverter: "Converter",
+        tabLog: "Journal",
+        recordThisBrew: "Record this brew →",
         grinders: {
           c40: "Comandante C40",
           kUltra: "1Zpresso K-Ultra",
@@ -735,7 +1421,10 @@
       notationDesc: document.getElementById('notationDesc'),
       notationExample: document.getElementById('notationExample'),
       disclaimer: document.getElementById('disclaimer'),
-      directionArrow: document.getElementById('directionArrow')
+      directionArrow: document.getElementById('directionArrow'),
+      viewBtnConverter: document.getElementById('viewBtnConverter'),
+      viewBtnLog: document.getElementById('viewBtnLog'),
+      logLinkBtn: document.getElementById('logLinkBtn')
     };
 
     // Conversion functions
@@ -883,6 +1572,11 @@
 
       // Update result unit based on target grinder
       elements.resultUnit.textContent = t.units[targetGrinder];
+
+      // View-switcher tabs + log-link button
+      if (elements.viewBtnConverter) elements.viewBtnConverter.textContent = t.tabConverter;
+      if (elements.viewBtnLog) elements.viewBtnLog.textContent = t.tabLog;
+      if (elements.logLinkBtn) elements.logLinkBtn.textContent = t.recordThisBrew;
     }
 
     // Update input field attributes based on source grinder
@@ -948,6 +1642,998 @@
       }
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // Roast level: enum + migration for historical free-text values
+    // ─────────────────────────────────────────────────────────────
+    const ROAST_LEVELS = ['veryLight', 'light', 'medium', 'dark'];
+    const ROAST_LEVEL_ALIASES = {
+      '超浅烘': 'veryLight', '浅烘': 'light', '中烘': 'medium', '深烘': 'dark',
+      '淺烘': 'light', '中焙': 'medium', '深焙': 'dark',
+      'extra light': 'veryLight', 'very light': 'veryLight',
+      'light': 'light', 'medium': 'medium', 'dark': 'dark'
+    };
+    function normalizeRoastLevel(raw) {
+      if (typeof raw !== 'string') return '';
+      const trimmed = raw.trim();
+      if (!trimmed) return '';
+      if (ROAST_LEVELS.indexOf(trimmed) !== -1) return trimmed;
+      return ROAST_LEVEL_ALIASES[trimmed]
+          || ROAST_LEVEL_ALIASES[trimmed.toLowerCase()]
+          || '';
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // BrewLog: brew-session journal (localStorage-backed)
+    // ─────────────────────────────────────────────────────────────
+    var BrewLog = (() => {
+      const STORAGE_KEY = 'grinder-brew-log-v1';
+      const SCHEMA_VERSION = 1;
+
+      function newId() {
+        // time-sortable 22-char id: 13-char base36 timestamp + 9-char random
+        const t = Date.now().toString(36).padStart(9, '0');
+        const r = Math.random().toString(36).slice(2, 11).padStart(9, '0');
+        return t + r;
+      }
+
+      function todayISO() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function createEntry(overrides) {
+        return {
+          id: newId(),
+          schemaVersion: SCHEMA_VERSION,
+          createdAt: new Date().toISOString(),
+          date: todayISO(),
+          weather: '',
+          beans: { name: '', origin: '', roastDate: '', roastLevel: '' },
+          grinder: { model: '', setting: '' },
+          brew: {
+            method: '', dripper: '', waterTempC: '',
+            dose: '', yield: '', totalTimeSec: '', pourSegments: ''
+          },
+          extraction: { tds: '', ey: '' },
+          rating: 0,
+          flavorNotes: '',
+          reflection: '',
+          ...(overrides || {})
+        };
+      }
+
+      // Validate a single entry loosely — drop malformed records, never throw.
+      // Imported scalars must be string/number primitives; arrays and objects are
+      // rejected per-field so a crafted import can't sneak `[object Object]` into
+      // the rendered spread.
+      function isPrimitiveScalar(v) {
+        return typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v));
+      }
+      function sanitizeEntry(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+        if (typeof raw.id !== 'string' || !raw.id) return null;
+        const base = createEntry({ id: raw.id });
+        // Shallow-merge known scalar fields, skipping non-primitive payloads
+        for (const k of ['schemaVersion', 'createdAt', 'date', 'weather',
+                         'rating', 'flavorNotes', 'reflection']) {
+          if (k in raw && isPrimitiveScalar(raw[k])) base[k] = raw[k];
+        }
+        // Nested groups: only copy recognised primitive subfields
+        const groups = {
+          beans: ['name', 'origin', 'roastDate', 'roastLevel'],
+          grinder: ['model', 'setting'],
+          brew: ['method', 'dripper', 'waterTempC', 'dose', 'yield',
+                 'totalTimeSec', 'pourSegments'],
+          extraction: ['tds', 'ey']
+        };
+        for (const [g, fields] of Object.entries(groups)) {
+          const src = raw[g];
+          if (src && typeof src === 'object' && !Array.isArray(src)) {
+            for (const f of fields) {
+              if (f in src && isPrimitiveScalar(src[f])) base[g][f] = src[f];
+            }
+          }
+        }
+        // Rating must be integer 0-5
+        const r = Number(base.rating);
+        base.rating = Number.isFinite(r) ? Math.max(0, Math.min(5, Math.round(r))) : 0;
+        // Roast level: coerce historical free-text values to the enum keys
+        base.beans.roastLevel = normalizeRoastLevel(base.beans.roastLevel);
+        return base;
+      }
+
+      function load() {
+        try {
+          const raw = (typeof localStorage !== 'undefined')
+            ? localStorage.getItem(STORAGE_KEY) : null;
+          if (!raw) return { entries: [], corrupt: false };
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return { entries: [], corrupt: true };
+          const entries = parsed.map(sanitizeEntry).filter(Boolean);
+          return { entries, corrupt: false };
+        } catch (_) {
+          return { entries: [], corrupt: true };
+        }
+      }
+
+      function save(entries) {
+        try {
+          if (typeof localStorage === 'undefined') return { ok: false, reason: 'unavailable' };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+          return { ok: true };
+        } catch (err) {
+          const reason = (err && err.name === 'QuotaExceededError') ? 'quota' : 'unknown';
+          return { ok: false, reason };
+        }
+      }
+
+      // Merge an import payload into existing entries; id collisions keep newest by createdAt.
+      function mergeImport(existing, incoming) {
+        if (!Array.isArray(incoming)) return { entries: existing, added: 0, skipped: 0 };
+        const byId = new Map(existing.map(e => [e.id, e]));
+        let added = 0;
+        let skipped = 0;
+        for (const raw of incoming) {
+          const clean = sanitizeEntry(raw);
+          if (!clean) { skipped++; continue; }
+          const prev = byId.get(clean.id);
+          if (!prev) { byId.set(clean.id, clean); added++; continue; }
+          // Collision: keep whichever has the later createdAt (string compare works for ISO)
+          if ((clean.createdAt || '') > (prev.createdAt || '')) {
+            byId.set(clean.id, clean);
+          } else {
+            skipped++;
+          }
+        }
+        return { entries: Array.from(byId.values()), added, skipped };
+      }
+
+      function exportPayload(entries) {
+        return {
+          schemaVersion: SCHEMA_VERSION,
+          exportedAt: new Date().toISOString(),
+          entries: entries
+        };
+      }
+
+      // Accept either a raw array or an export payload { entries: [...] }
+      function extractEntries(parsed) {
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && Array.isArray(parsed.entries)) return parsed.entries;
+        return null;
+      }
+
+      return {
+        STORAGE_KEY,
+        SCHEMA_VERSION,
+        createEntry,
+        sanitizeEntry,
+        load,
+        save,
+        mergeImport,
+        exportPayload,
+        extractEntries,
+        todayISO,
+        newId
+      };
+    })();
+
+    // ─────────────────────────────────────────────────────────────
+    // Router: hash-based view switching
+    //   #/            → converter  (default)
+    //   #/log         → brew log home
+    //   #/log/<id>    → specific entry
+    // ─────────────────────────────────────────────────────────────
+    function parseRoute(hash) {
+      const h = (hash || '').replace(/^#/, '').trim();
+      if (!h || h === '/' || h === '/converter') return { view: 'converter' };
+      const m = h.match(/^\/log(?:\/(.+))?$/);
+      if (m) return { view: 'log', entryId: m[1] || null };
+      return { view: 'converter' };
+    }
+
+    function navigate(hash) {
+      if (typeof location !== 'undefined' && location.hash !== hash) {
+        location.hash = hash;
+      } else {
+        applyRoute();
+      }
+    }
+
+    function applyRoute() {
+      if (typeof closeActivePopover === 'function') closeActivePopover();
+      const route = parseRoute(typeof location !== 'undefined' ? location.hash : '');
+      const converterView = document.getElementById('converterView');
+      const logView = document.getElementById('logView');
+      const btnConverter = document.getElementById('viewBtnConverter');
+      const btnLog = document.getElementById('viewBtnLog');
+
+      const isLog = route.view === 'log';
+      if (converterView) converterView.hidden = isLog;
+      if (logView) logView.hidden = !isLog;
+      if (btnConverter) btnConverter.classList.toggle('active', !isLog);
+      if (btnLog) btnLog.classList.toggle('active', isLog);
+
+      if (isLog && typeof renderLogView === 'function') {
+        renderLogView(route.entryId);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Brew Log view rendering
+    // ─────────────────────────────────────────────────────────────
+    const LOG_FIELD_SCHEMA = [
+      {
+        section: 'beans', titleKey: 'secBeans',
+        fields: [
+          { key: 'name', labelKey: 'beansName' },
+          { key: 'origin', labelKey: 'beansOrigin' },
+          { key: 'roastDate', labelKey: 'beansRoastDate', picker: 'date' },
+          { key: 'roastLevel', labelKey: 'beansRoastLevel', picker: 'level' }
+        ]
+      },
+      {
+        section: 'grinder', titleKey: 'secGrinder',
+        fields: [
+          { key: 'model', labelKey: 'grinderModel' },
+          { key: 'setting', labelKey: 'grinderSetting' }
+        ]
+      },
+      {
+        section: 'brew', titleKey: 'secBrew',
+        fields: [
+          { key: 'method', labelKey: 'brewMethod' },
+          { key: 'dripper', labelKey: 'brewDripper' },
+          { key: 'waterTempC', labelKey: 'brewWaterTemp' },
+          { key: 'dose', labelKey: 'brewDose' },
+          { key: 'yield', labelKey: 'brewYield' },
+          { key: 'totalTimeSec', labelKey: 'brewTime' },
+          { key: 'pourSegments', labelKey: 'brewPours' }
+        ]
+      },
+      {
+        section: 'extraction', titleKey: 'secExtraction',
+        fields: [
+          { key: 'tds', labelKey: 'extractionTds' },
+          { key: 'ey', labelKey: 'extractionEy' }
+        ]
+      }
+    ];
+
+    // Short provisional labels (Chinese first; full i18n lands in stage 6).
+    const LOG_LABELS = {
+      zh: {
+        tabConverter: '换算', tabLog: '日志',
+        newEntry: '+ 新建', importBtn: '导入', exportBtn: '导出',
+        empty: '— 还是空白的 —', newFirst: '+ 新建一篇',
+        discard: '丢弃此页',
+        discardConfirm: '确定丢弃这一页？此操作不可撤销。',
+        corrupt: '读取到损坏的日志数据，已忽略无法解析的记录。',
+        importPrompt: '粘贴日志 JSON（或取消）',
+        importOk: (n) => `导入 ${n} 条`,
+        importNone: '没有新增记录',
+        weatherPh: '天气',
+        secBeans: '豆子', secGrinder: '磨豆机', secBrew: '冲煮', secExtraction: '萃取',
+        secFlavor: '风味', secReflection: '复盘',
+        beansName: '名称', beansOrigin: '产地', beansRoastDate: '烘焙日期', beansRoastLevel: '烘焙度',
+        grinderModel: '机型', grinderSetting: '刻度',
+        brewMethod: '方式', brewDripper: '滤杯', brewWaterTemp: '水温 °C', brewDose: '粉量 g',
+        brewYield: '出液 g', brewTime: '总时间 s', brewPours: '注水',
+        extractionTds: 'TDS %', extractionEy: '萃取率 %',
+        fieldPh: '⋯⋯', prosePh: '写点什么…',
+        pickerPh: '点击选择',
+        roastLevel_veryLight: '超浅烘',
+        roastLevel_light:     '浅烘',
+        roastLevel_medium:    '中烘',
+        roastLevel_dark:      '深烘',
+        calendarPrev: '上个月', calendarNext: '下个月',
+        calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
+        calendarTitle: (y, m) => `${y} 年 ${m} 月`,
+        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+      },
+      en: {
+        tabConverter: 'Converter', tabLog: 'Journal',
+        newEntry: '+ New', importBtn: 'Import', exportBtn: 'Export',
+        empty: '— still blank —', newFirst: '+ Start a page',
+        discard: 'discard this page',
+        discardConfirm: 'Discard this page? This cannot be undone.',
+        corrupt: 'Some log entries were unreadable and have been skipped.',
+        importPrompt: 'Paste journal JSON (or cancel)',
+        importOk: (n) => `imported ${n}`,
+        importNone: 'nothing new to import',
+        weatherPh: 'weather',
+        secBeans: 'Beans', secGrinder: 'Grinder', secBrew: 'Brew', secExtraction: 'Extraction',
+        secFlavor: 'Flavor', secReflection: 'Reflection',
+        beansName: 'name', beansOrigin: 'origin', beansRoastDate: 'roast date', beansRoastLevel: 'roast',
+        grinderModel: 'model', grinderSetting: 'setting',
+        brewMethod: 'method', brewDripper: 'dripper', brewWaterTemp: 'water °C', brewDose: 'dose g',
+        brewYield: 'yield g', brewTime: 'time s', brewPours: 'pours',
+        extractionTds: 'TDS %', extractionEy: 'EY %',
+        fieldPh: '⋯⋯', prosePh: 'write something…',
+        pickerPh: 'Tap to choose',
+        roastLevel_veryLight: 'Extra light',
+        roastLevel_light:     'Light',
+        roastLevel_medium:    'Medium',
+        roastLevel_dark:      'Dark',
+        calendarPrev: 'Previous month', calendarNext: 'Next month',
+        calendarWeekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        calendarTitle: (y, m) => {
+          const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+          return `${months[m - 1]} ${y}`;
+        },
+        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+      }
+    };
+
+    function logLabels() { return LOG_LABELS[currentLang] || LOG_LABELS.zh; }
+
+    function formatLogDate(isoDate, lang) {
+      if (!isoDate) return '';
+      const d = new Date(isoDate + 'T00:00:00');
+      if (isNaN(d.getTime())) return isoDate;
+      const weekdayZh = ['日', '一', '二', '三', '四', '五', '六'];
+      const weekdayEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      if (lang === 'en') {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${weekdayEn[d.getDay()]}`;
+      }
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}年${m}月${day}日  周${weekdayZh[d.getDay()]}`;
+    }
+
+    function formatRoastDate(isoDate) {
+      if (!isoDate) return '';
+      const d = new Date(isoDate + 'T00:00:00');
+      if (isNaN(d.getTime())) return isoDate;
+      const y = String(d.getFullYear()).slice(-2);
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}.${m}.${day}`;
+    }
+
+    function getPath(obj, path) {
+      return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+    }
+
+    function clearChildren(node) {
+      while (node && node.firstChild) node.removeChild(node.firstChild);
+    }
+
+    function el(tag, opts, children) {
+      const node = document.createElement(tag);
+      if (opts) {
+        for (const [k, v] of Object.entries(opts)) {
+          if (v == null || v === false) continue;
+          if (k === 'class') node.className = v;
+          else if (k === 'text') node.textContent = v;
+          else if (k === 'dataset') Object.assign(node.dataset, v);
+          else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+          else node.setAttribute(k, v);
+        }
+      }
+      if (Array.isArray(children)) {
+        for (const c of children) if (c) node.appendChild(c);
+      }
+      return node;
+    }
+
+    function renderLogView(entryId) {
+      const root = document.getElementById('logView');
+      if (!root) return;
+      clearChildren(root);
+
+      const L = logLabels();
+      const { entries, corrupt } = BrewLog.load();
+      const shell = el('div', { class: 'log-shell' });
+
+      const toolbar = el('div', { class: 'log-toolbar' }, [
+        el('div', { class: 'log-toolbar-group' }, [
+          el('button', {
+            class: 'log-tool-btn primary',
+            type: 'button',
+            text: L.newEntry,
+            onclick: onNewEntry
+          })
+        ]),
+        el('div', { class: 'log-toolbar-group' }, [
+          el('button', { class: 'log-tool-btn', type: 'button', text: L.importBtn, onclick: onImport }),
+          el('button', { class: 'log-tool-btn', type: 'button', text: L.exportBtn, onclick: onExport })
+        ])
+      ]);
+      shell.appendChild(toolbar);
+
+      if (corrupt) {
+        shell.appendChild(el('div', { class: 'log-corrupt-banner', text: L.corrupt }));
+      }
+
+      if (entries.length === 0) {
+        shell.appendChild(el('div', { class: 'log-empty' }, [
+          el('div', { class: 'log-empty-msg', text: L.empty }),
+          el('button', {
+            class: 'log-tool-btn primary', type: 'button',
+            text: L.newFirst, onclick: onNewEntry
+          })
+        ]));
+        root.appendChild(shell);
+        return;
+      }
+
+      let idx = entryId ? entries.findIndex(e => e.id === entryId) : -1;
+      if (idx < 0) idx = 0;
+      const entry = entries[idx];
+
+      shell.appendChild(renderSpread(entry));
+      shell.appendChild(renderPager(entries, idx));
+      shell.appendChild(renderFooterActions(entry));
+
+      root.appendChild(shell);
+    }
+
+    function renderSpread(entry) {
+      const L = logLabels();
+      const leftPage = el('section', { class: 'log-page log-page-left' });
+
+      leftPage.appendChild(el('div', { class: 'log-date-bar' }, [
+        el('span', {
+          class: 'log-date log-editable',
+          contenteditable: 'true',
+          spellcheck: 'false',
+          'data-field': 'date',
+          'data-type': 'date',
+          text: formatLogDate(entry.date, currentLang)
+        }),
+        el('span', {
+          class: 'log-weather log-editable',
+          contenteditable: 'true',
+          'data-field': 'weather',
+          'data-placeholder': L.weatherPh,
+          text: entry.weather || ''
+        })
+      ]));
+
+      for (const sec of LOG_FIELD_SCHEMA) {
+        const fieldsGrid = el('div', { class: 'log-fields' });
+        for (const f of sec.fields) {
+          const path = `${sec.section}.${f.key}`;
+          const val = getPath(entry, path);
+          const isEmpty = val == null || val === '';
+          fieldsGrid.appendChild(el('div', { class: 'log-field-label', text: L[f.labelKey] }));
+
+          if (f.picker === 'level') {
+            fieldsGrid.appendChild(renderLevelTrigger(entry));
+          } else if (f.picker === 'date') {
+            fieldsGrid.appendChild(renderDateTrigger(entry));
+          } else {
+            fieldsGrid.appendChild(el('div', {
+              class: 'log-field-value log-editable' + (isEmpty ? ' is-empty' : ''),
+              contenteditable: 'true',
+              'data-field': path,
+              'data-placeholder': L.fieldPh,
+              text: isEmpty ? '' : String(val)
+            }));
+          }
+        }
+        leftPage.appendChild(el('section', { class: 'log-section' }, [
+          el('div', { class: 'log-section-title', text: L[sec.titleKey] }),
+          fieldsGrid
+        ]));
+      }
+
+      const rightPage = el('section', { class: 'log-page log-page-right' });
+
+      rightPage.appendChild(el('section', { class: 'log-section' }, [
+        el('div', { class: 'log-section-title', text: L.secFlavor }),
+        el('div', {
+          class: 'log-prose log-editable' + (entry.flavorNotes ? '' : ' is-empty'),
+          contenteditable: 'true',
+          'data-field': 'flavorNotes',
+          'data-placeholder': L.prosePh,
+          text: entry.flavorNotes || ''
+        })
+      ]));
+
+      rightPage.appendChild(el('section', { class: 'log-section' }, [
+        el('div', { class: 'log-section-title', text: L.secReflection }),
+        el('div', {
+          class: 'log-prose log-editable' + (entry.reflection ? '' : ' is-empty'),
+          contenteditable: 'true',
+          'data-field': 'reflection',
+          'data-placeholder': L.prosePh,
+          text: entry.reflection || ''
+        })
+      ]));
+
+      const rating = Math.max(0, Math.min(5, Number(entry.rating) || 0));
+      const ratingEl = el('div', { class: 'log-rating', role: 'radiogroup', 'aria-label': 'rating' });
+      for (let i = 1; i <= 5; i++) {
+        ratingEl.appendChild(el('span', {
+          class: 'log-star' + (i <= rating ? '' : ' is-empty'),
+          'data-rating': String(i),
+          role: 'radio',
+          'aria-checked': i === rating ? 'true' : 'false',
+          tabindex: '0',
+          text: i <= rating ? '✦' : '✧'
+        }));
+      }
+      rightPage.appendChild(ratingEl);
+
+      return el('article', { class: 'log-spread', 'data-entry-id': entry.id }, [leftPage, rightPage]);
+    }
+
+    function renderPager(entries, idx) {
+      const L = logLabels();
+      const prev = el('button', {
+        class: 'log-pager-btn', type: 'button', 'aria-label': 'previous page', text: '◀'
+      });
+      const next = el('button', {
+        class: 'log-pager-btn', type: 'button', 'aria-label': 'next page', text: '▶'
+      });
+      if (idx <= 0) prev.disabled = true;
+      if (idx >= entries.length - 1) next.disabled = true;
+      prev.addEventListener('click', () => {
+        if (idx > 0) navigate('#/log/' + entries[idx - 1].id);
+      });
+      next.addEventListener('click', () => {
+        if (idx < entries.length - 1) navigate('#/log/' + entries[idx + 1].id);
+      });
+      return el('nav', { class: 'log-pager', 'aria-label': 'page navigation' }, [
+        prev,
+        el('span', { class: 'log-pager-label', text: L.pagerLabel(idx + 1, entries.length) }),
+        next
+      ]);
+    }
+
+    function renderFooterActions(entry) {
+      const L = logLabels();
+      return el('div', { class: 'log-footer-actions' }, [
+        el('button', {
+          class: 'log-discard', type: 'button', text: L.discard,
+          onclick: () => onDiscard(entry.id)
+        })
+      ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Click-to-open pickers: shared popover infrastructure
+    // ─────────────────────────────────────────────────────────────
+    let activePopover = null;
+
+    function closeActivePopover() {
+      if (!activePopover) return;
+      const p = activePopover;
+      activePopover = null;
+      document.removeEventListener('mousedown', p.onDocDown, true);
+      document.removeEventListener('keydown', p.onKey, true);
+      window.removeEventListener('resize', p.onResize);
+      if (p.el && p.el.parentNode) {
+        p.el.classList.remove('is-open');
+        p.el.classList.add('is-closing');
+        const done = () => { if (p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el); };
+        p.el.addEventListener('transitionend', done, { once: true });
+        // Fallback in case transitionend never fires (reduced-motion path collapses it)
+        setTimeout(done, 240);
+      }
+    }
+
+    function positionPopover(pop, triggerEl) {
+      const rect = triggerEl.getBoundingClientRect();
+      const popRect = pop.getBoundingClientRect();
+      const margin = 8;
+      const scrollX = window.scrollX || window.pageXOffset || 0;
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const viewH = window.innerHeight || document.documentElement.clientHeight;
+      const viewW = window.innerWidth || document.documentElement.clientWidth;
+
+      const spaceBelow = viewH - rect.bottom;
+      const flipUp = spaceBelow < popRect.height + margin && rect.top > popRect.height + margin;
+      pop.classList.toggle('flip-up', flipUp);
+
+      let top = flipUp
+        ? rect.top + scrollY - popRect.height - margin
+        : rect.bottom + scrollY + margin;
+      let left = rect.left + scrollX;
+      // Keep inside viewport horizontally
+      const maxLeft = scrollX + viewW - popRect.width - margin;
+      if (left > maxLeft) left = maxLeft;
+      if (left < scrollX + margin) left = scrollX + margin;
+
+      pop.style.top = top + 'px';
+      pop.style.left = left + 'px';
+    }
+
+    function openPopover(triggerEl, extraClass, contentBuilder) {
+      closeActivePopover();
+      const pop = el('div', { class: 'log-popover ' + extraClass, role: 'dialog' });
+      contentBuilder(pop);
+      document.body.appendChild(pop);
+      // Measure after insertion, then position, then trigger the entrance transition.
+      positionPopover(pop, triggerEl);
+      requestAnimationFrame(() => pop.classList.add('is-open'));
+
+      const onDocDown = (e) => {
+        if (pop.contains(e.target) || e.target === triggerEl) return;
+        closeActivePopover();
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); closeActivePopover(); }
+      };
+      const onResize = () => positionPopover(pop, triggerEl);
+
+      // Defer document listeners to the next tick so the opening click
+      // doesn't immediately get counted as "outside click".
+      setTimeout(() => {
+        if (activePopover && activePopover.el === pop) {
+          document.addEventListener('mousedown', onDocDown, true);
+          document.addEventListener('keydown', onKey, true);
+          window.addEventListener('resize', onResize);
+        }
+      }, 0);
+
+      activePopover = { el: pop, triggerEl, onDocDown, onKey, onResize };
+      return pop;
+    }
+
+    function renderLevelTrigger(entry) {
+      const L = logLabels();
+      const level = entry.beans && entry.beans.roastLevel;
+      const label = level ? L['roastLevel_' + level] : '';
+      const isEmpty = !label;
+      const btn = el('button', {
+        class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
+        type: 'button',
+        'aria-haspopup': 'listbox',
+        text: isEmpty ? L.pickerPh : label
+      });
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openLevelPopover(btn, entry);
+      });
+      return btn;
+    }
+
+    function refreshLevelTrigger(btn, entry) {
+      const L = logLabels();
+      const level = entry.beans && entry.beans.roastLevel;
+      const label = level ? L['roastLevel_' + level] : '';
+      btn.textContent = label || L.pickerPh;
+      btn.classList.toggle('is-empty', !label);
+    }
+
+    function openLevelPopover(triggerEl, entry) {
+      openPopover(triggerEl, 'log-level-picker', (pop) => {
+        const L = logLabels();
+        const current = entry.beans && entry.beans.roastLevel;
+        for (const key of ROAST_LEVELS) {
+          const selected = current === key;
+          const opt = el('button', {
+            class: 'log-level-option' + (selected ? ' is-selected' : ''),
+            type: 'button',
+            role: 'option',
+            'aria-selected': selected ? 'true' : 'false'
+          }, [
+            el('span', { class: 'log-level-option-dot' }),
+            el('span', { text: L['roastLevel_' + key] })
+          ]);
+          opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const { entries } = BrewLog.load();
+            const stored = entries.find(en => en.id === entry.id);
+            if (!stored) { closeActivePopover(); return; }
+            const next = stored.beans.roastLevel === key ? '' : key;
+            stored.beans.roastLevel = next;
+            entry.beans.roastLevel = next;
+            BrewLog.save(entries);
+            refreshLevelTrigger(triggerEl, entry);
+            closeActivePopover();
+          });
+          pop.appendChild(opt);
+        }
+      });
+    }
+
+    function renderDateTrigger(entry) {
+      const L = logLabels();
+      const iso = entry.beans && entry.beans.roastDate;
+      const label = iso ? formatRoastDate(iso) : '';
+      const isEmpty = !label;
+      const btn = el('button', {
+        class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
+        type: 'button',
+        'aria-haspopup': 'dialog',
+        text: isEmpty ? L.pickerPh : label
+      });
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCalendarPopover(btn, entry);
+      });
+      return btn;
+    }
+
+    function refreshDateTrigger(btn, entry) {
+      const L = logLabels();
+      const iso = entry.beans && entry.beans.roastDate;
+      const label = iso ? formatRoastDate(iso) : '';
+      btn.textContent = label || L.pickerPh;
+      btn.classList.toggle('is-empty', !label);
+    }
+
+    function parseIsoDate(iso) {
+      if (typeof iso !== 'string') return null;
+      const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return null;
+      const y = +m[1], mo = +m[2], d = +m[3];
+      const dt = new Date(y, mo - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+      return dt;
+    }
+
+    function formatIsoDate(y, m, d) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    function openCalendarPopover(triggerEl, entry) {
+      const selected = parseIsoDate(entry.beans && entry.beans.roastDate);
+      const anchor = selected || new Date();
+      const state = { year: anchor.getFullYear(), month: anchor.getMonth() };
+
+      openPopover(triggerEl, 'log-calendar', (pop) => {
+        const L = logLabels();
+        const header = el('div', { class: 'log-cal-header' });
+        const prevBtn = el('button', {
+          class: 'log-cal-nav', type: 'button',
+          'aria-label': L.calendarPrev, text: '‹'
+        });
+        const nextBtn = el('button', {
+          class: 'log-cal-nav', type: 'button',
+          'aria-label': L.calendarNext, text: '›'
+        });
+        const title = el('div', { class: 'log-cal-title' });
+        header.appendChild(prevBtn);
+        header.appendChild(title);
+        header.appendChild(nextBtn);
+
+        const weekdays = el('div', { class: 'log-cal-weekdays' });
+        for (const wd of L.calendarWeekdays) {
+          weekdays.appendChild(el('div', { class: 'log-cal-wd', text: wd }));
+        }
+
+        const grid = el('div', { class: 'log-cal-grid' });
+        pop.appendChild(header);
+        pop.appendChild(weekdays);
+        pop.appendChild(grid);
+
+        prevBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (state.month === 0) { state.month = 11; state.year -= 1; }
+          else { state.month -= 1; }
+          renderGrid();
+        });
+        nextBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (state.month === 11) { state.month = 0; state.year += 1; }
+          else { state.month += 1; }
+          renderGrid();
+        });
+
+        function renderGrid() {
+          const LL = logLabels();
+          title.textContent = LL.calendarTitle(state.year, state.month + 1);
+          clearChildren(grid);
+
+          const firstDow = new Date(state.year, state.month, 1).getDay();
+          const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
+          const daysInPrev = new Date(state.year, state.month, 0).getDate();
+          const sel = parseIsoDate(entry.beans && entry.beans.roastDate);
+          const today = new Date();
+
+          for (let i = 0; i < 42; i++) {
+            let dayNum, cellYear, cellMonth, isOther = false;
+            if (i < firstDow) {
+              dayNum = daysInPrev - firstDow + 1 + i;
+              cellMonth = state.month - 1;
+              cellYear = state.year;
+              if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
+              isOther = true;
+            } else if (i >= firstDow + daysInMonth) {
+              dayNum = i - firstDow - daysInMonth + 1;
+              cellMonth = state.month + 1;
+              cellYear = state.year;
+              if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
+              isOther = true;
+            } else {
+              dayNum = i - firstDow + 1;
+              cellMonth = state.month;
+              cellYear = state.year;
+            }
+
+            const isToday = today.getFullYear() === cellYear
+                         && today.getMonth() === cellMonth
+                         && today.getDate() === dayNum;
+            const isSelected = sel
+                         && sel.getFullYear() === cellYear
+                         && sel.getMonth() === cellMonth
+                         && sel.getDate() === dayNum;
+
+            let cls = 'log-cal-day';
+            if (isOther) cls += ' is-other';
+            if (isToday) cls += ' is-today';
+            if (isSelected) cls += ' is-selected';
+
+            const cell = el('button', {
+              class: cls, type: 'button', text: String(dayNum)
+            });
+            cell.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const iso = formatIsoDate(cellYear, cellMonth + 1, dayNum);
+              const { entries } = BrewLog.load();
+              const stored = entries.find(en => en.id === entry.id);
+              if (!stored) { closeActivePopover(); return; }
+              const next = stored.beans.roastDate === iso ? '' : iso;
+              stored.beans.roastDate = next;
+              entry.beans.roastDate = next;
+              BrewLog.save(entries);
+              refreshDateTrigger(triggerEl, entry);
+              closeActivePopover();
+            });
+            grid.appendChild(cell);
+          }
+        }
+
+        renderGrid();
+      });
+    }
+
+    function onNewEntry() {
+      const { entries } = BrewLog.load();
+      const entry = BrewLog.createEntry();
+      BrewLog.save([entry, ...entries]);
+      navigate('#/log/' + entry.id);
+    }
+
+    function onDiscard(id) {
+      const L = logLabels();
+      if (typeof confirm !== 'function' || !confirm(L.discardConfirm)) return;
+      const { entries } = BrewLog.load();
+      const next = entries.filter(e => e.id !== id);
+      BrewLog.save(next);
+      navigate(next.length ? '#/log/' + next[0].id : '#/log');
+    }
+
+    function onImport() {
+      const L = logLabels();
+      if (typeof prompt !== 'function') return;
+      const raw = prompt(L.importPrompt);
+      if (!raw) return;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { return; }
+      const incoming = BrewLog.extractEntries(parsed);
+      if (!incoming) return;
+      const { entries } = BrewLog.load();
+      const { entries: merged, added } = BrewLog.mergeImport(entries, incoming);
+      BrewLog.save(merged);
+      if (typeof alert === 'function') {
+        alert(added > 0 ? L.importOk(added) : L.importNone);
+      }
+      applyRoute();
+    }
+
+    // Write a value at a dotted path on a plain object; creates intermediate objects if missing.
+    function setPath(obj, path, value) {
+      const parts = path.split('.');
+      let cur = obj;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (cur[parts[i]] == null || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+        cur = cur[parts[i]];
+      }
+      cur[parts[parts.length - 1]] = value;
+    }
+
+    function findEditableHost(target) {
+      if (!target || !target.classList || !target.classList.contains('log-editable')) return null;
+      const article = target.closest ? target.closest('.log-spread') : null;
+      if (!article) return null;
+      const id = article.dataset ? article.dataset.entryId : null;
+      if (!id) return null;
+      return { el: target, entryId: id };
+    }
+
+    function onEditableFocus(e) {
+      const host = findEditableHost(e.target);
+      if (!host) return;
+      host.el.classList.remove('is-empty');
+      if (host.el.dataset.type === 'date') {
+        const { entries } = BrewLog.load();
+        const entry = entries.find(en => en.id === host.entryId);
+        if (entry) host.el.textContent = entry.date || '';
+      }
+    }
+
+    function onEditableBlur(e) {
+      const host = findEditableHost(e.target);
+      if (!host) return;
+      const path = host.el.dataset.field;
+      if (!path) return;
+      const { entries } = BrewLog.load();
+      const entry = entries.find(en => en.id === host.entryId);
+      if (!entry) return;
+
+      let newValue = (host.el.textContent || '').trim();
+
+      if (host.el.dataset.type === 'date') {
+        const parsed = new Date(newValue + 'T00:00:00');
+        if (!newValue || isNaN(parsed.getTime())) newValue = entry.date || '';
+        setPath(entry, path, newValue);
+        host.el.textContent = formatLogDate(newValue, currentLang);
+      } else {
+        setPath(entry, path, newValue);
+        host.el.textContent = newValue;
+      }
+
+      host.el.classList.toggle('is-empty', newValue === '');
+      BrewLog.save(entries);
+    }
+
+    function onLogClick(e) {
+      const star = e.target && e.target.closest ? e.target.closest('.log-star') : null;
+      if (!star) return;
+      const article = star.closest('.log-spread');
+      if (!article) return;
+      const id = article.dataset.entryId;
+      const rating = Number(star.dataset.rating) || 0;
+      const { entries } = BrewLog.load();
+      const entry = entries.find(en => en.id === id);
+      if (!entry) return;
+      entry.rating = entry.rating === rating ? 0 : rating;
+      BrewLog.save(entries);
+      applyRoute();
+    }
+
+    function onLogKeydown(e) {
+      const t = e.target;
+      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
+        if (t.isContentEditable && e.key === 'Enter' && !e.shiftKey) {
+          const path = t.dataset && t.dataset.field;
+          const isProse = t.classList && t.classList.contains('log-prose');
+          if (path && !isProse) { e.preventDefault(); t.blur(); }
+        }
+        return;
+      }
+      const logView = document.getElementById('logView');
+      if (!logView || logView.hidden) return;
+
+      if (e.key === 'ArrowLeft') {
+        const prev = logView.querySelector('.log-pager-btn[aria-label="previous page"]');
+        if (prev && !prev.disabled) { e.preventDefault(); prev.click(); }
+      } else if (e.key === 'ArrowRight') {
+        const next = logView.querySelector('.log-pager-btn[aria-label="next page"]');
+        if (next && !next.disabled) { e.preventDefault(); next.click(); }
+      } else if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        onNewEntry();
+      }
+    }
+
+    function onExport() {
+      const { entries } = BrewLog.load();
+      const payload = BrewLog.exportPayload(entries);
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `brew-log-${BrewLog.todayISO()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     // Arrow bounce helper
     const arrowEl = document.getElementById('directionArrow');
     function bounceArrow() {
@@ -974,9 +2660,14 @@
         btn.classList.add('active');
         currentLang = btn.dataset.lang;
         document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
-        fadeSwitch(() => { updateTexts(); convert(); });
+        fadeSwitch(() => { updateTexts(); convert(); applyRoute(); });
       });
     });
+
+    // '记录这次冲煮 →' link: jump to log view with a fresh blank page.
+    if (elements.logLinkBtn) {
+      elements.logLinkBtn.addEventListener('click', onNewEntry);
+    }
 
     // Source grinder select
     elements.sourceSelect.addEventListener('change', () => {
@@ -1019,9 +2710,29 @@
     // Input field
     elements.inputValue.addEventListener('input', convert);
 
+    // View switcher (tab buttons + hashchange)
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigate(btn.dataset.view === 'log' ? '#/log' : '#/');
+      });
+    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('hashchange', applyRoute);
+    }
+
+    // Log-view delegated handlers (survive innerHTML rerenders)
+    const logRoot = document.getElementById('logView');
+    if (logRoot) {
+      logRoot.addEventListener('focusin', onEditableFocus);
+      logRoot.addEventListener('focusout', onEditableBlur);
+      logRoot.addEventListener('click', onLogClick);
+    }
+    document.addEventListener('keydown', onLogKeydown);
+
     // Initialize
     updateTexts();
     updateInputConfig();
+    applyRoute();
   </script>
 </body>
 </html>
