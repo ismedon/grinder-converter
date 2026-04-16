@@ -6,15 +6,21 @@ import vm from "node:vm";
 function makeElementStub() {
   return {
     style: {},
-    classList: { add() {}, remove() {} },
+    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
     setAttribute() {},
+    getAttribute() { return null; },
     addEventListener() {},
+    removeEventListener() {},
+    appendChild() {},
     textContent: "",
+    innerHTML: "",
     value: "",
     min: "",
     max: "",
     step: "",
     placeholder: "",
+    hidden: false,
+    dataset: {},
   };
 }
 
@@ -26,6 +32,7 @@ function loadConverterContext() {
   const elementCache = new Map();
   const documentStub = {
     documentElement: { lang: "zh-CN" },
+    body: makeElementStub(),
     getElementById(id) {
       if (!elementCache.has(id)) {
         elementCache.set(id, makeElementStub());
@@ -38,6 +45,11 @@ function loadConverterContext() {
     querySelectorAll() {
       return [];
     },
+    createElement() {
+      return makeElementStub();
+    },
+    addEventListener() {},
+    removeEventListener() {},
   };
 
   const context = { document: documentStub, console, setTimeout, clearTimeout };

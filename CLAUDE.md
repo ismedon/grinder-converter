@@ -32,11 +32,28 @@ K-Ultra uses X.Y.Z format (rotation.number.tick), where total clicks = X×100 + 
 
 CSS custom properties in `:root` — warm earth tones with dark mode via `prefers-color-scheme: dark`. Serif headings (Noto Serif SC), muted colors, minimal shadows.
 
+### Brew Log
+
+Hash router (`#/`, `#/log`, `#/log/<id>`) toggles between the converter and the brew journal. The journal renders a two-page spread (params on the left, prose on the right), all fields are `contenteditable` with blur-to-save.
+
+- **Storage**: localStorage key `grinder-brew-log-v1` holds a JSON array of entries. The `BrewLog` IIFE owns all read/write paths — components never touch `localStorage` directly.
+- **Schema** (`BrewLog.createEntry()` is the source of truth):
+  - Top-level: `id`, `schemaVersion`, `createdAt` (ISO), `date` (`YYYY-MM-DD`), `weather`, `rating` (0–5 int), `flavorNotes`, `reflection`
+  - `beans`: `name`, `origin`, `roastDate`, `roastLevel`
+  - `grinder`: `model`, `setting`
+  - `brew`: `method`, `dripper`, `waterTempC`, `dose`, `yield`, `totalTimeSec`, `pourSegments`
+  - `extraction`: `tds`, `ey`
+- **Sanitizer**: `sanitizeEntry()` drops malformed input (returns `null`) instead of throwing. Unknown fields are stripped; rating is clamped to integer 0–5.
+- **Import merge**: `mergeImport()` keys by `id`; on collision the entry with the later `createdAt` wins.
+- **`var BrewLog` is load-bearing for tests** — `vm.runInContext` only attaches `var` and function declarations to the context object. Switching to `const`/`let` would make `ctx.BrewLog` unreachable from `tests/brew-log.test.mjs`.
+- **`LOG_LABELS`** is a separate object from `i18n` — labels that need to update on language switch via `updateTexts()` belong in `i18n`; per-render log labels stay in `LOG_LABELS` and are read fresh through `logLabels()`.
+- **DOM convention**: never assign to `.innerHTML`. Use `clearChildren(node)` and the `el()` helper. A pre-commit hook on this machine enforces this.
+
 ## Commands
 
 ### Run tests
 ```
-node --test tests/conversion-accuracy.test.mjs
+node --test tests/*.test.mjs
 ```
 
 Tests use Node.js built-in test runner with `node:test` and `node:vm`. They extract the `<script>` from `index.html` and run it in a sandboxed VM context with DOM stubs, then test the conversion functions directly.
@@ -48,6 +65,7 @@ Open `index.html` directly in a browser — no server needed.
 
 - `index.html` — the entire application
 - `tests/conversion-accuracy.test.mjs` — anchor regression, roundtrip consistency, and range-clamping tests
+- `tests/brew-log.test.mjs` — schema, sanitize, import/export, and corrupt-storage tests for the brew journal
 - `reference/grinder-converter-project.md` — original PRD with data specs and brew method tables
 - `docs/plans/` — design plans for the wabi-sabi redesign
 
