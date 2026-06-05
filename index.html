@@ -1521,24 +1521,24 @@
     // Brew method by K-Ultra (used as reference for all grinders)
     function getBrewMethodByKUltra(clicks, lang) {
       const methods = i18n[lang].brewMethods;
-      if (clicks < 30) return methods.espresso;
-      if (clicks < 45) return methods.mokaPot;
-      if (clicks < 70) return methods.aeropressConc;
-      if (clicks < 95) return methods.pourOver;
-      if (clicks < 110) return methods.aeropressLight;
-      if (clicks < 130) return methods.frenchPress;
+      if (clicks < 40) return methods.espresso;
+      if (clicks < 55) return methods.mokaPot;
+      if (clicks < 68) return methods.aeropressConc;
+      if (clicks < 90) return methods.pourOver;
+      if (clicks < 98) return methods.aeropressLight;
+      if (clicks < 112) return methods.frenchPress;
       return methods.coldBrew;
     }
 
     // Brew method by C40
     function getBrewMethodByC40(clicks, lang) {
       const methods = i18n[lang].brewMethods;
-      if (clicks < 8) return methods.espresso;
-      if (clicks < 12) return methods.mokaPot;
-      if (clicks < 18) return methods.aeropressConc;
-      if (clicks < 25) return methods.pourOver;
-      if (clicks < 30) return methods.aeropressLight;
-      if (clicks < 35) return methods.frenchPress;
+      if (clicks < 14) return methods.espresso;
+      if (clicks < 17) return methods.mokaPot;
+      if (clicks < 20) return methods.aeropressConc;
+      if (clicks < 26) return methods.pourOver;
+      if (clicks < 28) return methods.aeropressLight;
+      if (clicks < 36) return methods.frenchPress;
       return methods.coldBrew;
     }
 
