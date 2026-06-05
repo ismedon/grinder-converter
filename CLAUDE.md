@@ -66,7 +66,8 @@ Open `index.html` directly in a browser — no server needed.
 - `index.html` — the entire application
 - `tests/conversion-accuracy.test.mjs` — anchor regression, roundtrip consistency, and range-clamping tests
 - `tests/brew-log.test.mjs` — schema, sanitize, import/export, and corrupt-storage tests for the brew journal
-- `reference/grinder-converter-project.md` — original PRD with data specs and brew method tables
+- `reference/grinder-converter-project.md` — original PRD with data specs and brew method tables; **see its 附录 (appendix) for the calibration rationale that supersedes the original ×3.75 linear coefficient**
+- `reference/c40-kultra-conversion-research.md` — 2026-06 community/source research on C40↔K-Ultra (refutes ×1.5 and ×3.2 single-coefficient formulas; confirms the brew-chart-calibrated piecewise approach is more accurate)
 - `docs/plans/` — design plans for the wabi-sabi redesign
 
 ## Important Constraints
