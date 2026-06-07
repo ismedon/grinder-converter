@@ -317,3 +317,24 @@ test("bestBrew returns highest-rated brew, latest wins ties, null if none rated"
   assert.equal(ctx.BrewLog.bestBrew(ctx.BrewLog.createBag({ brews: [mk("x", 0, "2026-05-01T00:00:00.000Z")] })), null);
   assert.equal(ctx.BrewLog.bestBrew(ctx.BrewLog.createBag()), null);
 });
+
+test("parseRoute maps the three views and legacy redirects", () => {
+  const ctx = loadContext();
+  // field-by-field (parseRoute returns VM-realm objects; deepEqual would false-fail)
+  assert.equal(ctx.parseRoute("").view, "dashboard");
+  assert.equal(ctx.parseRoute("#/").view, "dashboard");
+  assert.equal(ctx.parseRoute("#/log").view, "dashboard");
+  assert.equal(ctx.parseRoute("#/log/abc").view, "dashboard");
+  assert.equal(ctx.parseRoute("#/convert").view, "convert");
+  assert.equal(ctx.parseRoute("#/garbage").view, "dashboard");
+
+  const b1 = ctx.parseRoute("#/bag/bag_1");
+  assert.equal(b1.view, "bag");
+  assert.equal(b1.bagId, "bag_1");
+  assert.equal(b1.brewId, null);
+
+  const b2 = ctx.parseRoute("#/bag/bag_1/b9");
+  assert.equal(b2.view, "bag");
+  assert.equal(b2.bagId, "bag_1");
+  assert.equal(b2.brewId, "b9");
+});

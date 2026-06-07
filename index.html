@@ -2109,10 +2109,11 @@
     // ─────────────────────────────────────────────────────────────
     function parseRoute(hash) {
       const h = (hash || '').replace(/^#/, '').trim();
-      if (!h || h === '/' || h === '/converter') return { view: 'converter' };
-      const m = h.match(/^\/log(?:\/(.+))?$/);
-      if (m) return { view: 'log', entryId: m[1] || null };
-      return { view: 'converter' };
+      if (h === '/convert') return { view: 'convert' };
+      const bag = h.match(/^\/bag\/([^/]+)(?:\/([^/]+))?$/);
+      if (bag) return { view: 'bag', bagId: bag[1], brewId: bag[2] || null };
+      // '', '/', legacy '/log' and '/log/<id>' all land on the dashboard.
+      return { view: 'dashboard' };
     }
 
     function navigate(hash) {
@@ -2126,19 +2127,19 @@
     function applyRoute() {
       if (typeof closeActivePopover === 'function') closeActivePopover();
       const route = parseRoute(typeof location !== 'undefined' ? location.hash : '');
+      const journalView = document.getElementById('journalView');
       const converterView = document.getElementById('converterView');
-      const logView = document.getElementById('logView');
+      const btnJournal = document.getElementById('viewBtnJournal');
       const btnConverter = document.getElementById('viewBtnConverter');
-      const btnLog = document.getElementById('viewBtnLog');
 
-      const isLog = route.view === 'log';
-      if (converterView) converterView.hidden = isLog;
-      if (logView) logView.hidden = !isLog;
-      if (btnConverter) btnConverter.classList.toggle('active', !isLog);
-      if (btnLog) btnLog.classList.toggle('active', isLog);
+      const isConvert = route.view === 'convert';
+      if (journalView) journalView.hidden = isConvert;
+      if (converterView) converterView.hidden = !isConvert;
+      if (btnJournal) btnJournal.classList.toggle('active', !isConvert);
+      if (btnConverter) btnConverter.classList.toggle('active', isConvert);
 
-      if (isLog && typeof renderLogView === 'function') {
-        renderLogView(route.entryId);
+      if (!isConvert && typeof renderJournal === 'function') {
+        renderJournal(route);
       }
     }
 
