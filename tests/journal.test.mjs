@@ -144,3 +144,57 @@ test("sanitizeBag drops malformed input and sanitizes nested brews", () => {
   assert.equal(clean.brews.length, 1, "only the valid brew survives");
   assert.equal(clean.brews[0].id, "b1");
 });
+
+test("migrateEntriesToBags groups entries by name + roastDate", () => {
+  const ctx = loadContext();
+  const entries = [
+    ctx.BrewLog.createEntry({
+      id: "e1", createdAt: "2026-05-01T08:00:00.000Z", date: "2026-05-01",
+      beans: { name: "Guji", origin: "ET", roastDate: "2026-04-20", roastLevel: "light" },
+      grinder: { model: "C40", setting: "20" },
+      brew: { method: "V60", dripper: "Origami", waterTempC: "92", dose: "15",
+              yield: "250", totalTimeSec: "150", pourSegments: "" },
+      extraction: { tds: "1.4", ey: "21" },
+      rating: 4, flavorNotes: "floral", reflection: "good",
+    }),
+    ctx.BrewLog.createEntry({
+      id: "e2", createdAt: "2026-05-02T08:00:00.000Z", date: "2026-05-02",
+      beans: { name: "guji", origin: "ET", roastDate: "2026-04-20", roastLevel: "light" },
+      grinder: { model: "C40", setting: "22" },
+      rating: 5,
+    }),
+    ctx.BrewLog.createEntry({
+      id: "e3", createdAt: "2026-05-03T08:00:00.000Z", date: "2026-05-03",
+      beans: { name: "Kenya AA", origin: "KE", roastDate: "2026-04-25", roastLevel: "medium" },
+      grinder: { model: "K-Ultra", setting: "75" },
+      rating: 3,
+    }),
+  ];
+  const bags = ctx.BrewLog.migrateEntriesToBags(entries);
+  assert.equal(bags.length, 2, "two distinct (name+roastDate) groups");
+
+  const guji = bags.find(b => b.name.toLowerCase() === "guji");
+  assert.ok(guji);
+  assert.equal(guji.roastDate, "2026-04-20");
+  assert.equal(guji.grinderModel, "C40");
+  assert.equal(guji.brews.length, 2);
+  // brew identity + moved fields preserved
+  const b1 = guji.brews.find(b => b.id === "e1");
+  assert.equal(b1.grinderSetting, "20");
+  assert.equal(b1.brew.method, "V60");
+  assert.equal(b1.extraction.tds, "1.4");
+  assert.equal(b1.rating, 4);
+  // deterministic bag id from natural key
+  assert.equal(guji.id, ctx.BrewLog.bagIdFromKey(ctx.BrewLog.bagKey("guji", "2026-04-20")));
+});
+
+test("migrateEntriesToBags is idempotent and order-stable across runs", () => {
+  const ctx = loadContext();
+  const entries = [
+    ctx.BrewLog.createEntry({ id: "e1", beans: { name: "A", roastDate: "2026-01-01" } }),
+    ctx.BrewLog.createEntry({ id: "e2", beans: { name: "A", roastDate: "2026-01-01" } }),
+  ];
+  const first = JSON.stringify(ctx.BrewLog.migrateEntriesToBags(entries));
+  const second = JSON.stringify(ctx.BrewLog.migrateEntriesToBags(entries));
+  assert.equal(first, second);
+});

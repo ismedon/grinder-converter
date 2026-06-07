@@ -1920,6 +1920,49 @@
         return base;
       }
 
+      // Consolidate sanitized v1 entries into v2 bags, keyed by (name + roastDate).
+      // Bag identity fields are seeded from the first entry seen in each group;
+      // brews keep their original entry id and createdAt for idempotent re-import.
+      function migrateEntriesToBags(entries) {
+        const order = [];
+        const byKey = new Map();
+        for (const entry of (entries || [])) {
+          const beans = entry.beans || {};
+          const grinder = entry.grinder || {};
+          const key = bagKey(beans.name, beans.roastDate);
+          let bag = byKey.get(key);
+          if (!bag) {
+            bag = createBag({
+              id: bagIdFromKey(key),
+              createdAt: entry.createdAt || new Date().toISOString(),
+              name: beans.name || '',
+              origin: beans.origin || '',
+              roastDate: beans.roastDate || '',
+              roastLevel: beans.roastLevel || '',
+              grinderModel: grinder.model || '',
+              brews: []
+            });
+            byKey.set(key, bag);
+            order.push(key);
+          } else if ((entry.createdAt || '') < (bag.createdAt || '')) {
+            bag.createdAt = entry.createdAt;
+          }
+          bag.brews.push(createBrew({
+            id: entry.id,
+            createdAt: entry.createdAt || new Date().toISOString(),
+            date: entry.date || '',
+            weather: entry.weather || '',
+            grinderSetting: grinder.setting || '',
+            brew: Object.assign({}, entry.brew),
+            extraction: Object.assign({}, entry.extraction),
+            rating: entry.rating || 0,
+            flavorNotes: entry.flavorNotes || '',
+            reflection: entry.reflection || ''
+          }));
+        }
+        return order.map(k => byKey.get(k));
+      }
+
       return {
         STORAGE_KEY,
         STORAGE_KEY_V2,
@@ -1939,7 +1982,8 @@
         bagKey,
         bagIdFromKey,
         sanitizeBag,
-        sanitizeBrew
+        sanitizeBrew,
+        migrateEntriesToBags
       };
     })();
 
