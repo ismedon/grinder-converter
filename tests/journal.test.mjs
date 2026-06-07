@@ -219,20 +219,23 @@ test("loadJournal migrates v1 data on first load and preserves the v1 backup", (
   const ls = makeLocalStorage({ "grinder-brew-log-v1": v1 });
   const ctx = loadContext({ localStorage: ls });
 
+  // Page init runs applyRoute -> renderJournal -> loadJournal, so migration
+  // already happened on load: v2 written, v1 preserved as backup.
+  assert.ok(ls._store.has("grinder-brew-journal-v2"));
+  assert.equal(ls._store.get("grinder-brew-log-v1"), v1);
+
+  // Reading now returns the migrated bag without re-migrating.
   const res = ctx.BrewLog.loadJournal();
-  assert.equal(res.migrated, true);
+  assert.equal(res.migrated, false);
   assert.equal(res.bags.length, 1);
   assert.equal(res.bags[0].brews[0].grinderSetting, "20");
 
-  // v2 key was written…
-  assert.ok(ls._store.has("grinder-brew-journal-v2"));
-  // …and the v1 key is left exactly as it was (backup).
-  assert.equal(ls._store.get("grinder-brew-log-v1"), v1);
-
-  // Second load reads v2 directly (no re-migration).
+  // If v2 is cleared, loadJournal performs and reports migration again.
+  ls._store.delete("grinder-brew-journal-v2");
   const res2 = ctx.BrewLog.loadJournal();
-  assert.equal(res2.migrated, false);
+  assert.equal(res2.migrated, true);
   assert.equal(res2.bags.length, 1);
+  assert.ok(ls._store.has("grinder-brew-journal-v2"));
 });
 
 test("loadJournal flags corrupt v2 JSON without throwing", () => {
