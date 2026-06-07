@@ -198,3 +198,59 @@ test("migrateEntriesToBags is idempotent and order-stable across runs", () => {
   const second = JSON.stringify(ctx.BrewLog.migrateEntriesToBags(entries));
   assert.equal(first, second);
 });
+
+test("loadJournal returns empty when no data exists", () => {
+  const ctx = loadContext({ localStorage: makeLocalStorage() });
+  const res = ctx.BrewLog.loadJournal();
+  assert.ok(Array.isArray(res.bags));
+  assert.equal(res.bags.length, 0);
+  assert.equal(res.corrupt, false);
+  assert.equal(res.migrated, false);
+});
+
+test("loadJournal migrates v1 data on first load and preserves the v1 backup", () => {
+  const v1 = JSON.stringify([
+    { id: "e1", schemaVersion: 1, createdAt: "2026-05-01T00:00:00.000Z",
+      date: "2026-05-01",
+      beans: { name: "Guji", origin: "ET", roastDate: "2026-04-20", roastLevel: "light" },
+      grinder: { model: "C40", setting: "20" },
+      brew: { method: "V60" }, extraction: {}, rating: 4 },
+  ]);
+  const ls = makeLocalStorage({ "grinder-brew-log-v1": v1 });
+  const ctx = loadContext({ localStorage: ls });
+
+  const res = ctx.BrewLog.loadJournal();
+  assert.equal(res.migrated, true);
+  assert.equal(res.bags.length, 1);
+  assert.equal(res.bags[0].brews[0].grinderSetting, "20");
+
+  // v2 key was written…
+  assert.ok(ls._store.has("grinder-brew-journal-v2"));
+  // …and the v1 key is left exactly as it was (backup).
+  assert.equal(ls._store.get("grinder-brew-log-v1"), v1);
+
+  // Second load reads v2 directly (no re-migration).
+  const res2 = ctx.BrewLog.loadJournal();
+  assert.equal(res2.migrated, false);
+  assert.equal(res2.bags.length, 1);
+});
+
+test("loadJournal flags corrupt v2 JSON without throwing", () => {
+  const ls = makeLocalStorage({ "grinder-brew-journal-v2": "{not json" });
+  const ctx = loadContext({ localStorage: ls });
+  const res = ctx.BrewLog.loadJournal();
+  assert.equal(res.corrupt, true);
+  assert.ok(Array.isArray(res.bags));
+  assert.equal(res.bags.length, 0);
+});
+
+test("saveJournal round-trips through loadJournal", () => {
+  const ls = makeLocalStorage();
+  const ctx = loadContext({ localStorage: ls });
+  const bag = ctx.BrewLog.createBag({ id: "bag_x", name: "Test", roastDate: "2026-05-01" });
+  bag.brews.push(ctx.BrewLog.createBrew({ id: "b1", grinderSetting: "18" }));
+  ctx.BrewLog.saveJournal([bag]);
+  const res = ctx.BrewLog.loadJournal();
+  assert.equal(res.bags.length, 1);
+  assert.equal(res.bags[0].brews[0].grinderSetting, "18");
+});

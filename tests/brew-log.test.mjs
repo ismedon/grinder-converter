@@ -387,3 +387,14 @@ test("save() → load() roundtrip through stubbed localStorage", () => {
   assert.equal(byId.get("r1").rating, 4);
   assert.equal(byId.get("r2").rating, 2);
 });
+
+test("loadJournal preserves the v1 backup key after migrating", () => {
+  const seed = JSON.stringify([
+    { id: "e1", schemaVersion: 1, createdAt: "2026-05-01T00:00:00.000Z",
+      beans: { name: "A", roastDate: "2026-01-01" }, grinder: { model: "C40", setting: "10" } },
+  ]);
+  const ls = makeLocalStorage(seed);
+  const ctx = loadContext({ localStorage: ls });
+  ctx.BrewLog.loadJournal();
+  assert.equal(ls._store.get("grinder-brew-log-v1"), seed, "v1 backup untouched");
+});

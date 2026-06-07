@@ -1963,6 +1963,45 @@
         return order.map(k => byKey.get(k));
       }
 
+      function bagsFromParsed(parsed) {
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && Array.isArray(parsed.bags)) return parsed.bags;
+        return null;
+      }
+
+      function saveJournal(bags) {
+        try {
+          if (typeof localStorage === 'undefined') return { ok: false, reason: 'unavailable' };
+          localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(bags));
+          return { ok: true };
+        } catch (err) {
+          const reason = (err && err.name === 'QuotaExceededError') ? 'quota' : 'unknown';
+          return { ok: false, reason };
+        }
+      }
+
+      function loadJournal() {
+        try {
+          const rawV2 = (typeof localStorage !== 'undefined')
+            ? localStorage.getItem(STORAGE_KEY_V2) : null;
+          if (rawV2) {
+            const arr = bagsFromParsed(JSON.parse(rawV2));
+            if (!Array.isArray(arr)) return { bags: [], corrupt: true, migrated: false };
+            return { bags: arr.map(sanitizeBag).filter(Boolean), corrupt: false, migrated: false };
+          }
+          // No v2 yet — migrate from v1 if present, persist, keep v1 as backup.
+          const v1 = load();
+          if (v1.entries.length === 0) {
+            return { bags: [], corrupt: v1.corrupt, migrated: false };
+          }
+          const bags = migrateEntriesToBags(v1.entries);
+          saveJournal(bags);
+          return { bags, corrupt: v1.corrupt, migrated: true };
+        } catch (_) {
+          return { bags: [], corrupt: true, migrated: false };
+        }
+      }
+
       return {
         STORAGE_KEY,
         STORAGE_KEY_V2,
@@ -1983,7 +2022,9 @@
         bagIdFromKey,
         sanitizeBag,
         sanitizeBrew,
-        migrateEntriesToBags
+        migrateEntriesToBags,
+        loadJournal,
+        saveJournal
       };
     })();
 
