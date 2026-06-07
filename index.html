@@ -1825,9 +1825,64 @@
         return null;
       }
 
+      const JOURNAL_VERSION = 2;
+      const STORAGE_KEY_V2 = 'grinder-brew-journal-v2';
+
+      function createBrew(overrides) {
+        return {
+          id: newId(),
+          createdAt: new Date().toISOString(),
+          date: todayISO(),
+          weather: '',
+          grinderSetting: '',
+          brew: {
+            method: '', dripper: '', waterTempC: '',
+            dose: '', yield: '', totalTimeSec: '', pourSegments: ''
+          },
+          extraction: { tds: '', ey: '' },
+          rating: 0,
+          flavorNotes: '',
+          reflection: '',
+          ...(overrides || {})
+        };
+      }
+
+      function createBag(overrides) {
+        return {
+          id: newId(),
+          schemaVersion: JOURNAL_VERSION,
+          createdAt: new Date().toISOString(),
+          name: '',
+          origin: '',
+          roastDate: '',
+          roastLevel: '',
+          grinderModel: '',
+          status: 'active',
+          brews: [],
+          ...(overrides || {})
+        };
+      }
+
+      function bagKey(name, roastDate) {
+        return String(name || '').trim().toLowerCase()
+          + ' ' + String(roastDate || '').trim();
+      }
+
+      // Deterministic djb2 hash → base36, so identical (name+roastDate) always
+      // yields the same bag id (idempotent migration + re-import).
+      function bagIdFromKey(key) {
+        let h = 5381;
+        for (let i = 0; i < key.length; i++) {
+          h = (((h << 5) + h) + key.charCodeAt(i)) >>> 0;
+        }
+        return 'bag_' + h.toString(36);
+      }
+
       return {
         STORAGE_KEY,
+        STORAGE_KEY_V2,
         SCHEMA_VERSION,
+        JOURNAL_VERSION,
         createEntry,
         sanitizeEntry,
         load,
@@ -1836,7 +1891,11 @@
         exportPayload,
         extractEntries,
         todayISO,
-        newId
+        newId,
+        createBag,
+        createBrew,
+        bagKey,
+        bagIdFromKey
       };
     })();
 
