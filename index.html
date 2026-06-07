@@ -262,6 +262,18 @@
     .bag-card-meta { font-size: 0.82rem; color: var(--text-secondary); }
     .bag-card-stats { font-size: 0.82rem; color: var(--accent-color); }
 
+    /* ── Journal: bag timeline ───────────────────────────────── */
+    .bag-header { padding: 0.5rem 0 1rem; border-bottom: 1px solid var(--border-color); }
+    .bag-header-name { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 700; }
+    .best-brew-banner { font-size: 0.8rem; letter-spacing: 0.05em; color: var(--accent-color); text-transform: uppercase; }
+    .method-group-title { font-family: var(--font-serif); font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.75rem; }
+    .brew-card {
+      padding: 1rem 1.1rem; border-radius: 12px; border: 1px solid var(--border-color);
+      background: var(--card-bg); color: var(--text-primary); display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .brew-card.is-best { border-color: var(--accent-color); box-shadow: 0 0 0 1px var(--accent-color) inset; }
+    .brew-card-summary { font-family: var(--font-serif); font-size: 0.95rem; }
+
     /* Two-page spread — desktop */
     @keyframes logPageMount {
       from { opacity: 0; transform: translateX(6px); }
@@ -2461,6 +2473,85 @@
         alert(added > 0 ? L.importOk(added) : L.importNone);
       }
       applyRoute();
+    }
+
+    function renderBagView(root, bags, bag, brewId) {
+      const L = logLabels();
+      const shell = el('div', { class: 'journal-shell', 'data-bag-id': bag.id });
+
+      shell.appendChild(el('div', { class: 'journal-toolbar' }, [
+        el('div', { class: 'journal-toolbar-group' }, [
+          el('button', { class: 'journal-btn', type: 'button', text: L.backToBags,
+            onclick: () => navigate('#/') })
+        ]),
+        el('div', { class: 'journal-toolbar-group' }, [
+          el('button', { class: 'journal-btn primary', type: 'button', text: L.newBrew,
+            onclick: () => onNewBrew(bag.id) })
+        ])
+      ]));
+
+      shell.appendChild(renderBagHeader(bag));
+
+      if (bag.brews.length === 0) {
+        shell.appendChild(el('div', { class: 'journal-empty' }, [
+          el('div', { class: 'journal-empty-msg', text: L.emptyBrews }),
+          el('button', { class: 'journal-btn primary', type: 'button', text: L.newFirstBrew,
+            onclick: () => onNewBrew(bag.id) })
+        ]));
+        root.appendChild(shell);
+        return;
+      }
+
+      const best = BrewLog.bestBrew(bag);
+      if (best) {
+        shell.appendChild(el('div', { class: 'best-brew-banner', text: L.bestBrewLabel }));
+        shell.appendChild(renderBrewCard(bag, best, brewId === best.id, true));
+      }
+
+      // Group remaining brews by method (compare like-with-like).
+      const rest = bag.brews.filter(b => !best || b.id !== best.id);
+      const byMethod = new Map();
+      for (const b of rest) {
+        const m = (b.brew && b.brew.method) ? String(b.brew.method) : L.methodless;
+        if (!byMethod.has(m)) byMethod.set(m, []);
+        byMethod.get(m).push(b);
+      }
+      for (const [method, group] of byMethod) {
+        shell.appendChild(el('div', { class: 'method-group-title', text: method }));
+        group
+          .slice()
+          .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+          .forEach(b => shell.appendChild(renderBrewCard(bag, b, brewId === b.id, false)));
+      }
+
+      root.appendChild(shell);
+    }
+
+    function onNewBrew(bagId) {
+      const { bags } = BrewLog.loadJournal();
+      const bag = bags.find(b => b.id === bagId);
+      if (!bag) return;
+      const brew = BrewLog.createBrew();
+      bag.brews = [brew, ...bag.brews];
+      BrewLog.saveJournal(bags);
+      navigate('#/bag/' + bagId + '/' + brew.id);
+    }
+
+    // Temporary minimal renderers — replaced by the editable versions in Task 10.
+    function renderBagHeader(bag) {
+      return el('div', { class: 'bag-header' }, [
+        el('div', { class: 'bag-header-name', text: bag.name || logLabels().untitledBag })
+      ]);
+    }
+
+    function renderBrewCard(bag, brew, isOpen, isBest) {
+      return el('article', {
+        class: 'brew-card' + (isBest ? ' is-best' : ''),
+        'data-bag-id': bag.id, 'data-brew-id': brew.id
+      }, [
+        el('div', { class: 'brew-card-summary', text:
+          [formatLogDate(brew.date, currentLang), brew.grinderSetting].filter(Boolean).join('  ·  ') })
+      ]);
     }
 
     // ─────────────────────────────────────────────────────────────
