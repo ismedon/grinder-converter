@@ -3081,6 +3081,16 @@
     }
 
     function onLogClick(e) {
+      // Inline grind-translate: jump to the converter pre-targeted at the bag's grinder.
+      const translate = e.target && e.target.closest ? e.target.closest('.grind-translate-btn') : null;
+      if (translate) {
+        e.preventDefault();
+        const header = document.querySelector('.bag-header');
+        const modelEl = header ? header.querySelector('[data-field="grinderModel"]') : null;
+        navigate('#/convert');
+        preselectConverterTarget(modelEl ? modelEl.textContent : '');
+        return;
+      }
       const star = e.target && e.target.closest ? e.target.closest('.log-star') : null;
       if (!star) return;
       const card = star.closest('.brew-card');
@@ -3094,6 +3104,19 @@
       brew.rating = brew.rating === rating ? 0 : rating;
       BrewLog.saveJournal(bags);
       applyRoute();
+    }
+
+    // Best-effort map a free-text grinder model to a converter target select value.
+    function preselectConverterTarget(model) {
+      const m = String(model || '').toLowerCase();
+      let target = null;
+      if (m.includes('c40') || m.includes('comandante')) target = 'c40';
+      else if (m.includes('k-ultra') || m.includes('kultra') || m.includes('1zpresso')) target = 'kUltra';
+      else if (m.includes('ek43') || m.includes('mahlk')) target = 'ek43';
+      if (!target) return;
+      targetGrinder = target;
+      if (elements.targetSelect) elements.targetSelect.value = target;
+      if (typeof convert === 'function') convert();
     }
 
     function onDiscardBrew(bagId, brewId) {
@@ -3170,7 +3193,7 @@
 
     // '记录这次冲煮 →' link: jump to log view with a fresh blank page.
     if (elements.logLinkBtn) {
-      elements.logLinkBtn.addEventListener('click', onNewEntry);
+      elements.logLinkBtn.addEventListener('click', () => navigate('#/'));
     }
 
     // Source grinder select
