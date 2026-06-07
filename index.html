@@ -272,7 +272,31 @@
       background: var(--card-bg); color: var(--text-primary); display: flex; flex-direction: column; gap: 0.6rem;
     }
     .brew-card.is-best { border-color: var(--accent-color); box-shadow: 0 0 0 1px var(--accent-color) inset; }
-    .brew-card-summary { font-family: var(--font-serif); font-size: 0.95rem; }
+    .brew-card-summary { font-family: var(--font-serif); font-size: 0.95rem; color: var(--text-secondary); }
+
+    /* ── Journal: brew editor (open card) ────────────────────── */
+    .bag-header-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem; }
+    .bag-id-field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .bag-id-label { font-size: 0.72rem; color: var(--text-secondary); }
+    .bag-id-value { font-family: var(--font-serif); min-width: 6ch; }
+    .brew-card-head { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .brew-date { font-family: var(--font-serif); }
+    .brew-rating { margin-left: auto; }
+    .log-star { cursor: pointer; color: var(--accent-color); font-size: 1.1rem; }
+    .log-star.is-empty { color: var(--border-color); }
+    .brew-fields { display: grid; grid-template-columns: auto 1fr; gap: 0.45rem 1rem; align-items: baseline; }
+    .brew-field-label { font-size: 0.78rem; color: var(--text-secondary); }
+    .brew-field-value { position: relative; }
+    .brew-grind-cell { display: flex; align-items: baseline; gap: 0.5rem; }
+    .brew-grind-cell .brew-field-value { flex: 1; }
+    .brew-section-title { font-size: 0.8rem; color: var(--text-secondary); margin: 0.6rem 0 0.2rem; }
+    .brew-prose { min-height: 3rem; line-height: 1.6; }
+    .log-editable:focus { outline: none; }
+    .log-editable.is-empty::before { content: attr(data-placeholder); color: var(--text-secondary); opacity: 0.55; }
+    .brew-footer-actions { margin-top: 0.75rem; }
+    .brew-discard { background: none; border: none; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; }
+    .grind-translate-btn { font-size: 0.72rem; cursor: pointer; white-space: nowrap;
+      border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--accent-color); padding: 0 0.4rem; }
 
     /* Two-page spread — desktop */
     @keyframes logPageMount {
@@ -2537,21 +2561,132 @@
       navigate('#/bag/' + bagId + '/' + brew.id);
     }
 
-    // Temporary minimal renderers — replaced by the editable versions in Task 10.
     function renderBagHeader(bag) {
-      return el('div', { class: 'bag-header' }, [
-        el('div', { class: 'bag-header-name', text: bag.name || logLabels().untitledBag })
+      const L = logLabels();
+      const field = (fieldKey, labelKey, value, opts) => el('div', { class: 'bag-id-field' }, [
+        el('div', { class: 'bag-id-label', text: L[labelKey] }),
+        el('div', Object.assign({
+          class: 'bag-id-value log-editable' + (value ? '' : ' is-empty'),
+          contenteditable: 'true', spellcheck: 'false',
+          'data-scope': 'bag', 'data-field': fieldKey,
+          'data-placeholder': L.fieldPh, text: value || ''
+        }, opts || {}))
+      ]);
+      return el('div', { class: 'bag-header', 'data-bag-id': bag.id }, [
+        el('div', { class: 'bag-header-row' }, [
+          field('name', 'bagName', bag.name),
+          field('origin', 'bagOrigin', bag.origin)
+        ]),
+        el('div', { class: 'bag-header-row' }, [
+          field('roastDate', 'bagRoastDate', bag.roastDate),
+          field('roastLevel', 'bagRoastLevel', bag.roastLevel),
+          field('grinderModel', 'bagGrinderModel', bag.grinderModel)
+        ])
       ]);
     }
 
+    const BREW_FIELD_SCHEMA = [
+      { key: 'grinderSetting', labelKey: 'brewGrindSetting' },
+      { key: 'brew.method', labelKey: 'brewMethod' },
+      { key: 'brew.dripper', labelKey: 'brewDripper' },
+      { key: 'brew.waterTempC', labelKey: 'brewWaterTemp' },
+      { key: 'brew.dose', labelKey: 'brewDose' },
+      { key: 'brew.yield', labelKey: 'brewYield' },
+      { key: 'brew.totalTimeSec', labelKey: 'brewTime' },
+      { key: 'brew.pourSegments', labelKey: 'brewPours' },
+      { key: 'extraction.tds', labelKey: 'extractionTds' },
+      { key: 'extraction.ey', labelKey: 'extractionEy' }
+    ];
+
+    function renderBrewRating(brew) {
+      const rating = Math.max(0, Math.min(5, Number(brew.rating) || 0));
+      const ratingEl = el('div', { class: 'brew-rating', role: 'radiogroup', 'aria-label': 'rating' });
+      for (let i = 1; i <= 5; i++) {
+        ratingEl.appendChild(el('span', {
+          class: 'log-star' + (i <= rating ? '' : ' is-empty'),
+          'data-rating': String(i), role: 'radio',
+          'aria-checked': i === rating ? 'true' : 'false', tabindex: '0',
+          text: i <= rating ? '✦' : '✧'
+        }));
+      }
+      return ratingEl;
+    }
+
     function renderBrewCard(bag, brew, isOpen, isBest) {
-      return el('article', {
-        class: 'brew-card' + (isBest ? ' is-best' : ''),
+      const L = logLabels();
+      const card = el('article', {
+        class: 'brew-card' + (isBest ? ' is-best' : '') + (isOpen ? ' is-open' : ''),
         'data-bag-id': bag.id, 'data-brew-id': brew.id
-      }, [
-        el('div', { class: 'brew-card-summary', text:
-          [formatLogDate(brew.date, currentLang), brew.grinderSetting].filter(Boolean).join('  ·  ') })
-      ]);
+      });
+
+      card.appendChild(el('div', { class: 'brew-card-head' }, [
+        el('span', {
+          class: 'brew-date log-editable', contenteditable: 'true', spellcheck: 'false',
+          'data-scope': 'brew', 'data-field': 'date', 'data-type': 'date',
+          text: formatLogDate(brew.date, currentLang)
+        }),
+        el('span', {
+          class: 'brew-weather log-editable' + (brew.weather ? '' : ' is-empty'),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': 'weather',
+          'data-placeholder': L.weatherPh, text: brew.weather || ''
+        }),
+        renderBrewRating(brew)
+      ]));
+
+      // Collapsed cards show a one-line summary; the open card shows the full grid.
+      if (!isOpen) {
+        const summary = BREW_FIELD_SCHEMA.slice(0, 3)
+          .map(f => getPath(brew, f.key)).filter(Boolean).join('  ·  ');
+        card.appendChild(el('div', { class: 'brew-card-summary', text: summary || L.fieldPh }));
+        card.addEventListener('click', (e) => {
+          if (e.target.closest && e.target.closest('.log-editable, .log-star')) return;
+          navigate('#/bag/' + bag.id + '/' + brew.id);
+        });
+        return card;
+      }
+
+      const grid = el('div', { class: 'brew-fields' });
+      for (const f of BREW_FIELD_SCHEMA) {
+        const val = getPath(brew, f.key);
+        const isEmpty = val == null || val === '';
+        grid.appendChild(el('div', { class: 'brew-field-label', text: L[f.labelKey] }));
+        const value = el('div', {
+          class: 'brew-field-value log-editable' + (isEmpty ? ' is-empty' : ''),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': f.key,
+          'data-placeholder': L.fieldPh, text: isEmpty ? '' : String(val)
+        });
+        if (f.key === 'grinderSetting') {
+          // Translate button is a SIBLING (not a child) so it neither pollutes the
+          // field's textContent value nor gets wiped when the field saves on blur.
+          grid.appendChild(el('div', { class: 'brew-grind-cell' }, [
+            value,
+            el('button', { class: 'grind-translate-btn', type: 'button',
+              text: L.translateGrind, title: L.translateGrind })
+          ]));
+        } else {
+          grid.appendChild(value);
+        }
+      }
+      card.appendChild(grid);
+
+      card.appendChild(el('div', { class: 'brew-section' }, [
+        el('div', { class: 'brew-section-title', text: L.secFlavor }),
+        el('div', { class: 'brew-prose log-editable' + (brew.flavorNotes ? '' : ' is-empty'),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': 'flavorNotes',
+          'data-placeholder': L.prosePh, text: brew.flavorNotes || '' })
+      ]));
+      card.appendChild(el('div', { class: 'brew-section' }, [
+        el('div', { class: 'brew-section-title', text: L.secReflection }),
+        el('div', { class: 'brew-prose log-editable' + (brew.reflection ? '' : ' is-empty'),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': 'reflection',
+          'data-placeholder': L.prosePh, text: brew.reflection || '' })
+      ]));
+
+      card.appendChild(el('div', { class: 'brew-footer-actions' }, [
+        el('button', { class: 'brew-discard', type: 'button', text: L.discardBrew,
+          onclick: () => onDiscardBrew(bag.id, brew.id) })
+      ]));
+      return card;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -2889,13 +3024,25 @@
       cur[parts[parts.length - 1]] = value;
     }
 
+    // Resolve an editable element to its (bagId, brewId|null, scope) target.
     function findEditableHost(target) {
       if (!target || !target.classList || !target.classList.contains('log-editable')) return null;
-      const article = target.closest ? target.closest('.log-spread') : null;
-      if (!article) return null;
-      const id = article.dataset ? article.dataset.entryId : null;
-      if (!id) return null;
-      return { el: target, entryId: id };
+      const scope = target.dataset ? target.dataset.scope : null;
+      if (scope === 'bag') {
+        const header = target.closest ? target.closest('.bag-header') : null;
+        const bagId = header && header.dataset ? header.dataset.bagId : null;
+        return bagId ? { el: target, scope: 'bag', bagId, brewId: null } : null;
+      }
+      const card = target.closest ? target.closest('.brew-card') : null;
+      if (!card || !card.dataset) return null;
+      return { el: target, scope: 'brew', bagId: card.dataset.bagId, brewId: card.dataset.brewId };
+    }
+
+    function findBrew(bags, host) {
+      const bag = bags.find(b => b.id === host.bagId);
+      if (!bag) return { bag: null, brew: null };
+      if (host.scope === 'bag') return { bag, brew: null };
+      return { bag, brew: bag.brews.find(b => b.id === host.brewId) || null };
     }
 
     function onEditableFocus(e) {
@@ -2903,9 +3050,9 @@
       if (!host) return;
       host.el.classList.remove('is-empty');
       if (host.el.dataset.type === 'date') {
-        const { entries } = BrewLog.load();
-        const entry = entries.find(en => en.id === host.entryId);
-        if (entry) host.el.textContent = entry.date || '';
+        const { bags } = BrewLog.loadJournal();
+        const { brew } = findBrew(bags, host);
+        if (brew) host.el.textContent = brew.date || '';
       }
     }
 
@@ -2914,63 +3061,66 @@
       if (!host) return;
       const path = host.el.dataset.field;
       if (!path) return;
-      const { entries } = BrewLog.load();
-      const entry = entries.find(en => en.id === host.entryId);
-      if (!entry) return;
+      const { bags } = BrewLog.loadJournal();
+      const { bag, brew } = findBrew(bags, host);
+      const targetObj = host.scope === 'bag' ? bag : brew;
+      if (!targetObj) return;
 
       let newValue = (host.el.textContent || '').trim();
-
       if (host.el.dataset.type === 'date') {
         const parsed = parseIsoDate(newValue);
-        if (!parsed) newValue = entry.date || '';
-        setPath(entry, path, newValue);
+        if (!parsed) newValue = (brew && brew.date) || '';
+        setPath(targetObj, path, newValue);
         host.el.textContent = formatLogDate(newValue, currentLang);
       } else {
-        setPath(entry, path, newValue);
+        setPath(targetObj, path, newValue);
         host.el.textContent = newValue;
       }
-
       host.el.classList.toggle('is-empty', newValue === '');
-      BrewLog.save(entries);
+      BrewLog.saveJournal(bags);
     }
 
     function onLogClick(e) {
       const star = e.target && e.target.closest ? e.target.closest('.log-star') : null;
       if (!star) return;
-      const article = star.closest('.log-spread');
-      if (!article) return;
-      const id = article.dataset.entryId;
+      const card = star.closest('.brew-card');
+      if (!card || !card.dataset) return;
+      const { bags } = BrewLog.loadJournal();
+      const bag = bags.find(b => b.id === card.dataset.bagId);
+      if (!bag) return;
+      const brew = bag.brews.find(b => b.id === card.dataset.brewId);
+      if (!brew) return;
       const rating = Number(star.dataset.rating) || 0;
-      const { entries } = BrewLog.load();
-      const entry = entries.find(en => en.id === id);
-      if (!entry) return;
-      entry.rating = entry.rating === rating ? 0 : rating;
-      BrewLog.save(entries);
+      brew.rating = brew.rating === rating ? 0 : rating;
+      BrewLog.saveJournal(bags);
       applyRoute();
+    }
+
+    function onDiscardBrew(bagId, brewId) {
+      const L = logLabels();
+      if (typeof confirm !== 'function' || !confirm(L.discardConfirm)) return;
+      const { bags } = BrewLog.loadJournal();
+      const bag = bags.find(b => b.id === bagId);
+      if (!bag) return;
+      bag.brews = bag.brews.filter(b => b.id !== brewId);
+      BrewLog.saveJournal(bags);
+      navigate('#/bag/' + bagId);
     }
 
     function onLogKeydown(e) {
       const t = e.target;
       if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
         if (t.isContentEditable && e.key === 'Enter' && !e.shiftKey) {
-          const path = t.dataset && t.dataset.field;
-          const isProse = t.classList && t.classList.contains('log-prose');
-          if (path && !isProse) { e.preventDefault(); t.blur(); }
+          const isProse = t.classList && t.classList.contains('brew-prose');
+          if (!isProse) { e.preventDefault(); t.blur(); }
         }
         return;
       }
-      const logView = document.getElementById('logView');
-      if (!logView || logView.hidden) return;
-
-      if (e.key === 'ArrowLeft') {
-        const prev = logView.querySelector('.log-pager-btn[aria-label="previous page"]');
-        if (prev && !prev.disabled) { e.preventDefault(); prev.click(); }
-      } else if (e.key === 'ArrowRight') {
-        const next = logView.querySelector('.log-pager-btn[aria-label="next page"]');
-        if (next && !next.disabled) { e.preventDefault(); next.click(); }
-      } else if (e.key === 'n' || e.key === 'N') {
-        e.preventDefault();
-        onNewEntry();
+      const journalView = document.getElementById('journalView');
+      if (!journalView || journalView.hidden) return;
+      if (e.key === 'n' || e.key === 'N') {
+        const shell = journalView.querySelector('.journal-shell[data-bag-id]');
+        if (shell && shell.dataset.bagId) { e.preventDefault(); onNewBrew(shell.dataset.bagId); }
       }
     }
 
@@ -3074,12 +3224,12 @@
       window.addEventListener('hashchange', applyRoute);
     }
 
-    // Log-view delegated handlers (survive innerHTML rerenders)
-    const logRoot = document.getElementById('logView');
-    if (logRoot) {
-      logRoot.addEventListener('focusin', onEditableFocus);
-      logRoot.addEventListener('focusout', onEditableBlur);
-      logRoot.addEventListener('click', onLogClick);
+    // Journal delegated handlers (survive re-renders)
+    const journalRoot = document.getElementById('journalView');
+    if (journalRoot) {
+      journalRoot.addEventListener('focusin', onEditableFocus);
+      journalRoot.addEventListener('focusout', onEditableBlur);
+      journalRoot.addEventListener('click', onLogClick);
     }
     document.addEventListener('keydown', onLogKeydown);
 
