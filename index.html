@@ -2002,6 +2002,75 @@
         }
       }
 
+      function exportJournal(bags) {
+        return {
+          schemaVersion: JOURNAL_VERSION,
+          exportedAt: new Date().toISOString(),
+          bags: bags
+        };
+      }
+
+      // Accept v2 (payload {bags} or raw bag array) or v1 ({entries}/array/schemaVersion 1).
+      // v1 shapes are migrated to bags so import is shape-agnostic.
+      function extractBags(parsed) {
+        if (parsed && parsed.schemaVersion === 1) {
+          const entries = extractEntries(parsed);
+          return entries ? migrateEntriesToBags(entries.map(sanitizeEntry).filter(Boolean)) : null;
+        }
+        const v2 = bagsFromParsed(parsed);
+        if (v2) {
+          // A raw array of v1 entries has no `brews`; treat as v1 and migrate.
+          const looksLikeBags = v2.length === 0 || (v2[0] && Array.isArray(v2[0].brews));
+          if (looksLikeBags) return v2;
+          return migrateEntriesToBags(v2.map(sanitizeEntry).filter(Boolean));
+        }
+        const entries = extractEntries(parsed);
+        if (entries) return migrateEntriesToBags(entries.map(sanitizeEntry).filter(Boolean));
+        return null;
+      }
+
+      function mergeJournalImport(existing, incoming) {
+        if (!Array.isArray(incoming)) return { bags: existing, addedBags: 0, addedBrews: 0 };
+        const order = existing.map(b => bagKey(b.name, b.roastDate));
+        const byKey = new Map(existing.map(b => [bagKey(b.name, b.roastDate), b]));
+        let addedBags = 0;
+        let addedBrews = 0;
+        for (const raw of incoming) {
+          const clean = sanitizeBag(raw);
+          if (!clean) continue;
+          const key = bagKey(clean.name, clean.roastDate);
+          const prev = byKey.get(key);
+          if (!prev) {
+            byKey.set(key, clean);
+            order.push(key);
+            addedBags++;
+            addedBrews += clean.brews.length;
+            continue;
+          }
+          const brewById = new Map(prev.brews.map(b => [b.id, b]));
+          for (const nb of clean.brews) {
+            const old = brewById.get(nb.id);
+            if (!old) { brewById.set(nb.id, nb); addedBrews++; }
+            else if ((nb.createdAt || '') > (old.createdAt || '')) { brewById.set(nb.id, nb); }
+          }
+          prev.brews = Array.from(brewById.values());
+        }
+        return { bags: order.map(k => byKey.get(k)), addedBags, addedBrews };
+      }
+
+      function bestBrew(bag) {
+        if (!bag || !Array.isArray(bag.brews) || bag.brews.length === 0) return null;
+        let best = null;
+        for (const b of bag.brews) {
+          const r = Number(b.rating) || 0;
+          if (r <= 0) continue;
+          if (!best) { best = b; continue; }
+          const br = Number(best.rating) || 0;
+          if (r > br || (r === br && (b.createdAt || '') > (best.createdAt || ''))) best = b;
+        }
+        return best;
+      }
+
       return {
         STORAGE_KEY,
         STORAGE_KEY_V2,
@@ -2024,7 +2093,11 @@
         sanitizeBrew,
         migrateEntriesToBags,
         loadJournal,
-        saveJournal
+        saveJournal,
+        exportJournal,
+        extractBags,
+        mergeJournalImport,
+        bestBrew
       };
     })();
 

@@ -254,3 +254,66 @@ test("saveJournal round-trips through loadJournal", () => {
   assert.equal(res.bags.length, 1);
   assert.equal(res.bags[0].brews[0].grinderSetting, "18");
 });
+
+test("exportJournal wraps bags with version + timestamp", () => {
+  const ctx = loadContext();
+  const payload = ctx.BrewLog.exportJournal([ctx.BrewLog.createBag({ id: "bag_1" })]);
+  assert.equal(payload.schemaVersion, 2);
+  assert.match(payload.exportedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(payload.bags.length, 1);
+});
+
+test("extractBags accepts v2 payloads and raw bag arrays", () => {
+  const ctx = loadContext();
+  const bag = ctx.BrewLog.createBag({ id: "bag_1", name: "A", roastDate: "2026-01-01" });
+  assert.equal(ctx.BrewLog.extractBags({ schemaVersion: 2, bags: [bag] }).length, 1);
+  assert.equal(ctx.BrewLog.extractBags([bag]).length, 1);
+  assert.equal(ctx.BrewLog.extractBags({ nonsense: true }), null);
+});
+
+test("extractBags migrates a v1 import payload into bags", () => {
+  const ctx = loadContext();
+  const v1Payload = { schemaVersion: 1, entries: [
+    { id: "e1", beans: { name: "Guji", roastDate: "2026-04-20" },
+      grinder: { model: "C40", setting: "20" } },
+  ]};
+  const bags = ctx.BrewLog.extractBags(v1Payload);
+  assert.equal(bags.length, 1);
+  assert.equal(bags[0].brews[0].grinderSetting, "20");
+});
+
+test("mergeJournalImport merges by bag natural key and brew id", () => {
+  const ctx = loadContext();
+  const existing = [ctx.BrewLog.createBag({
+    id: "bag_a", name: "Guji", roastDate: "2026-04-20",
+    brews: [ctx.BrewLog.createBrew({ id: "b1", createdAt: "2026-05-01T00:00:00.000Z", grinderSetting: "20" })],
+  })];
+  const incoming = [ctx.BrewLog.createBag({
+    id: "bag_zzz", name: "guji", roastDate: "2026-04-20", // same natural key, different id
+    brews: [
+      ctx.BrewLog.createBrew({ id: "b1", createdAt: "2026-05-09T00:00:00.000Z", grinderSetting: "23" }), // newer -> wins
+      ctx.BrewLog.createBrew({ id: "b2", grinderSetting: "25" }), // new brew
+    ],
+  }), ctx.BrewLog.createBag({ id: "bag_b", name: "Kenya", roastDate: "2026-04-25" })];
+
+  const res = ctx.BrewLog.mergeJournalImport(existing, incoming);
+  assert.equal(res.bags.length, 2, "same-key bag merged, new bag added");
+  const guji = res.bags.find(b => b.name.toLowerCase() === "guji");
+  assert.equal(guji.brews.length, 2, "b1 updated in place, b2 added");
+  assert.equal(guji.brews.find(b => b.id === "b1").grinderSetting, "23", "newer brew wins");
+  assert.equal(res.addedBags, 1);
+  assert.equal(res.addedBrews, 1);
+});
+
+test("bestBrew returns highest-rated brew, latest wins ties, null if none rated", () => {
+  const ctx = loadContext();
+  const mk = (id, rating, createdAt) => ctx.BrewLog.createBrew({ id, rating, createdAt });
+  const bag = ctx.BrewLog.createBag({ brews: [
+    mk("b1", 4, "2026-05-01T00:00:00.000Z"),
+    mk("b2", 5, "2026-05-02T00:00:00.000Z"),
+    mk("b3", 5, "2026-05-09T00:00:00.000Z"), // tie at 5, latest
+  ]});
+  assert.equal(ctx.BrewLog.bestBrew(bag).id, "b3");
+  assert.equal(ctx.BrewLog.bestBrew(ctx.BrewLog.createBag({ brews: [mk("x", 0, "2026-05-01T00:00:00.000Z")] })), null);
+  assert.equal(ctx.BrewLog.bestBrew(ctx.BrewLog.createBag()), null);
+});
