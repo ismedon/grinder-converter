@@ -1878,6 +1878,48 @@
         return 'bag_' + h.toString(36);
       }
 
+      function sanitizeBrew(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+        if (typeof raw.id !== 'string' || !raw.id) return null;
+        const base = createBrew({ id: raw.id });
+        for (const k of ['createdAt', 'date', 'weather', 'grinderSetting',
+                         'rating', 'flavorNotes', 'reflection']) {
+          if (k in raw && isPrimitiveScalar(raw[k])) base[k] = raw[k];
+        }
+        const groups = {
+          brew: ['method', 'dripper', 'waterTempC', 'dose', 'yield',
+                 'totalTimeSec', 'pourSegments'],
+          extraction: ['tds', 'ey']
+        };
+        for (const [g, fields] of Object.entries(groups)) {
+          const src = raw[g];
+          if (src && typeof src === 'object' && !Array.isArray(src)) {
+            for (const f of fields) {
+              if (f in src && isPrimitiveScalar(src[f])) base[g][f] = src[f];
+            }
+          }
+        }
+        const r = Number(base.rating);
+        base.rating = Number.isFinite(r) ? Math.max(0, Math.min(5, Math.round(r))) : 0;
+        return base;
+      }
+
+      function sanitizeBag(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+        if (typeof raw.id !== 'string' || !raw.id) return null;
+        const base = createBag({ id: raw.id });
+        for (const k of ['schemaVersion', 'createdAt', 'name', 'origin',
+                         'roastDate', 'roastLevel', 'grinderModel']) {
+          if (k in raw && isPrimitiveScalar(raw[k])) base[k] = raw[k];
+        }
+        base.roastLevel = normalizeRoastLevel(base.roastLevel);
+        base.status = (raw.status === 'finished') ? 'finished' : 'active';
+        base.brews = Array.isArray(raw.brews)
+          ? raw.brews.map(sanitizeBrew).filter(Boolean)
+          : [];
+        return base;
+      }
+
       return {
         STORAGE_KEY,
         STORAGE_KEY_V2,
@@ -1895,7 +1937,9 @@
         createBag,
         createBrew,
         bagKey,
-        bagIdFromKey
+        bagIdFromKey,
+        sanitizeBag,
+        sanitizeBrew
       };
     })();
 

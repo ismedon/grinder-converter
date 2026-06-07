@@ -99,3 +99,48 @@ test("bagKey normalizes name + roastDate; bagIdFromKey is deterministic", () => 
   assert.equal(id1, id2);
   assert.match(id1, /^bag_[0-9a-z]+$/);
 });
+
+test("sanitizeBrew drops malformed input, keeps primitives, clamps rating", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.BrewLog.sanitizeBrew(null), null);
+  assert.equal(ctx.BrewLog.sanitizeBrew("nope"), null);
+  assert.equal(ctx.BrewLog.sanitizeBrew({}), null, "missing id is dropped");
+
+  const clean = ctx.BrewLog.sanitizeBrew({
+    id: "b1", date: "2026-05-01", grinderSetting: "20",
+    brew: { method: "V60", dripper: { evil: 1 }, dose: 15 },
+    extraction: { tds: 1.4, ey: 21 },
+    rating: 9, flavorNotes: "floral", junkField: "x",
+  });
+  assert.equal(clean.id, "b1");
+  assert.equal(clean.grinderSetting, "20");
+  assert.equal(clean.brew.method, "V60");
+  assert.equal(clean.brew.dripper, "", "object subfield rejected");
+  assert.equal(clean.brew.dose, 15);
+  assert.equal(clean.extraction.tds, 1.4);
+  assert.equal(clean.rating, 5, "rating clamped to 0-5");
+  assert.equal(clean.junkField, undefined, "unknown fields stripped");
+});
+
+test("sanitizeBag drops malformed input and sanitizes nested brews", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.BrewLog.sanitizeBag(null), null);
+  assert.equal(ctx.BrewLog.sanitizeBag({}), null, "missing id is dropped");
+
+  const clean = ctx.BrewLog.sanitizeBag({
+    id: "bag_1", name: "Guji", roastDate: "2026-05-01",
+    grinderModel: "C40", status: "weird",
+    brews: [
+      { id: "b1", grinderSetting: "20" },
+      null,
+      { noId: true },
+      "garbage",
+    ],
+  });
+  assert.equal(clean.id, "bag_1");
+  assert.equal(clean.name, "Guji");
+  assert.equal(clean.grinderModel, "C40");
+  assert.equal(clean.status, "active", "unknown status falls back to active");
+  assert.equal(clean.brews.length, 1, "only the valid brew survives");
+  assert.equal(clean.brews[0].id, "b1");
+});
