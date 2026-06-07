@@ -1211,19 +1211,23 @@
 
     <!-- Header -->
     <header class="header">
-      <h1 id="title">磨豆机刻度转换器</h1>
-      <p class="subtitle" id="subtitle">C40 ↔ K-Ultra ↔ EK43</p>
+      <h1 id="title">冲煮手记</h1>
+      <p class="subtitle" id="subtitle">记录每一次冲煮，逐步逼近那一杯</p>
     </header>
 
-    <!-- View Switcher -->
+    <!-- View Switcher (Journal primary) -->
     <nav class="view-switcher" aria-label="视图切换">
-      <button class="view-btn active" data-view="converter" id="viewBtnConverter">换算</button>
+      <button class="view-btn active" data-view="journal" id="viewBtnJournal">手记</button>
       <span class="view-sep" aria-hidden="true">｜</span>
-      <button class="view-btn" data-view="log" id="viewBtnLog">日志</button>
+      <button class="view-btn" data-view="convert" id="viewBtnConverter">换算</button>
     </nav>
 
     <main>
-    <div class="view" id="converterView">
+    <div class="view" id="journalView">
+      <!-- Dashboard / bag timeline / brew editor mount here (rendered by renderJournal) -->
+    </div>
+
+    <div class="view" id="converterView" hidden>
     <!-- Direction Selection -->
     <div class="card">
       <div class="card-title" id="directionLabel">转换方向</div>
@@ -1290,10 +1294,6 @@
       转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调
     </div>
     </div><!-- /#converterView -->
-
-    <div class="view" id="logView" hidden>
-      <!-- Brew Log view — UI is mounted in stage 3 -->
-    </div>
     </main>
   </div>
 
@@ -1326,8 +1326,8 @@
     // i18n
     const i18n = {
       zh: {
-        title: "磨豆机刻度转换器",
-        subtitle: "C40 ↔ K-Ultra ↔ EK43",
+        title: "冲煮手记",
+        subtitle: "记录每一次冲煮，逐步逼近那一杯",
         directionLabel: "转换方向",
         inputLabel: "输入刻度",
         inputPlaceholder: "20",
@@ -1344,6 +1344,7 @@
         sourceLabel: "源设备",
         targetLabel: "目标设备",
         resultRegion: "转换结果",
+        tabJournal: "手记",
         tabConverter: "换算",
         tabLog: "日志",
         recordThisBrew: "记录这次冲煮 →",
@@ -1368,8 +1369,8 @@
         }
       },
       en: {
-        title: "Grinder Setting Converter",
-        subtitle: "C40 ↔ K-Ultra ↔ EK43",
+        title: "Brew Journal",
+        subtitle: "Log every brew; close in on the cup",
         directionLabel: "Conversion Direction",
         inputLabel: "Input Setting",
         inputPlaceholder: "20",
@@ -1386,6 +1387,7 @@
         sourceLabel: "Source grinder",
         targetLabel: "Target grinder",
         resultRegion: "Conversion result",
+        tabJournal: "Journal",
         tabConverter: "Converter",
         tabLog: "Journal",
         recordThisBrew: "Record this brew →",
@@ -2994,7 +2996,7 @@
     // View switcher (tab buttons + hashchange)
     document.querySelectorAll('.view-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        navigate(btn.dataset.view === 'log' ? '#/log' : '#/');
+        navigate(btn.dataset.view === 'convert' ? '#/convert' : '#/');
       });
     });
     if (typeof window !== 'undefined') {
