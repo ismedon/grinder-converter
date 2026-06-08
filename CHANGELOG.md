@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.0.1] - 2026-06-08
+
+### Fixed
+- **多行复盘 / 风味被压成一行**：冲煮卡的「风味」「复盘」字段允许换行（`onLogKeydown` 对 prose 不拦截回车），但失焦保存时用 `textContent` 读取，浏览器插入的 `<div>`/`<br>` 换行被吞掉。改为 prose 字段用 `innerText` 读取，并给 `.brew-prose` 加 `white-space: pre-wrap`，换行得以保存并正确显示
+- **卡内「换算 ⇄」落到「相同磨豆机」死路**：`preselectConverterTarget` 把目标设为豆袋磨豆机，但当来源恰好相同（如 C40 豆袋遇默认来源 C40）时换算器只显示「相同磨豆机」无结果。现会在来源与目标相同时自动切换来源，确保给出真实换算
+
 ## [3.0.0] - 2026-06-08
 
 ### 冲煮手记重构 (Repositioned to a Bag-Centric Brew Journal)

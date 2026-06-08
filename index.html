@@ -243,7 +243,7 @@
     .brew-grind-cell { display: flex; align-items: baseline; gap: 0.5rem; }
     .brew-grind-cell .brew-field-value { flex: 1; }
     .brew-section-title { font-size: 0.8rem; color: var(--text-secondary); margin: 0.6rem 0 0.2rem; }
-    .brew-prose { min-height: 3rem; line-height: 1.6; }
+    .brew-prose { min-height: 3rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
     .log-editable:focus { outline: none; }
     .log-editable.is-empty::before { content: attr(data-placeholder); color: var(--text-secondary); opacity: 0.55; }
     .brew-footer-actions { margin-top: 0.75rem; }
@@ -2101,7 +2101,11 @@
       const targetObj = host.scope === 'bag' ? bag : brew;
       if (!targetObj) return;
 
-      let newValue = (host.el.textContent || '').trim();
+      // Prose fields allow line breaks (see onLogKeydown); read via innerText so
+      // the browser-inserted block/<br> breaks survive as \n instead of being
+      // collapsed by textContent. Single-line fields keep using textContent.
+      const isProse = host.el.classList && host.el.classList.contains('brew-prose');
+      let newValue = ((isProse ? host.el.innerText : host.el.textContent) || '').trim();
       if (host.el.dataset.type === 'date') {
         const parsed = parseIsoDate(newValue);
         if (!parsed) newValue = (brew && brew.date) || '';
@@ -2151,6 +2155,14 @@
       if (!target) return;
       targetGrinder = target;
       if (elements.targetSelect) elements.targetSelect.value = target;
+      // The point of the translate jump is to convert INTO the bag's grinder, so
+      // if the source already equals it the converter would just show the no-op
+      // "same grinder" message. Pick a different source so a real conversion shows.
+      if (sourceGrinder === target) {
+        const alt = ['kUltra', 'c40', 'ek43'].find(g => g !== target);
+        sourceGrinder = alt;
+        if (elements.sourceSelect) elements.sourceSelect.value = alt;
+      }
       if (typeof convert === 'function') convert();
     }
 
