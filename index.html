@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>磨豆机刻度转换器 | Grinder Setting Converter</title>
+  <title>冲煮手记 | Brew Journal</title>
 
   <!-- SEO Meta -->
   <meta name="description" content="免费在线磨豆机刻度转换工具。Comandante C40 ↔ 1Zpresso K-Ultra ↔ Mahlkönig EK43 刻度互转，含冲煮推荐。">
@@ -51,6 +51,8 @@
       --success-color: #c45c3c;
       --warning-color: #7d6a38;
       --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+      /* handwriting fonts unused after the journal reposition; removed together
+         with the Google Fonts <link> in the PWA-hardening plan (ADR 0003) */
       --font-hand: "Caveat", "Ma Shan Zheng", "Kaiti SC", "KaiTi", serif;
       --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -182,582 +184,72 @@
       display: none;
     }
 
-    /* ─── Brew Log view ───────────────────────────────────────── */
-    .log-shell {
-      max-width: 960px;
-      margin: 0 auto;
+    /* ── Journal: dashboard + bag list ───────────────────────── */
+    .journal-shell { display: flex; flex-direction: column; gap: 1.25rem; }
+    .journal-toolbar { display: flex; justify-content: space-between; gap: 0.75rem; }
+    .journal-toolbar-group { display: flex; gap: 0.5rem; }
+    .journal-btn {
+      font-family: var(--font-serif); font-size: 0.9rem;
+      padding: 0.5rem 0.9rem; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary);
+      transition: border-color 0.18s ease, background 0.18s ease;
     }
+    .journal-btn:hover { border-color: var(--accent-color); }
+    .journal-btn.primary { background: var(--accent-color); color: var(--card-bg); border-color: var(--accent-color); }
+    .journal-corrupt-banner {
+      padding: 0.6rem 0.9rem; border-radius: 8px;
+      background: #f6e7d8; color: var(--text-primary); font-size: 0.85rem;
+    }
+    .journal-empty { text-align: center; padding: 3rem 1rem; display: flex; flex-direction: column; gap: 1rem; align-items: center; }
+    .journal-empty-msg { color: var(--text-secondary); font-family: var(--font-serif); }
+    .bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .bag-card {
+      text-align: left; display: flex; flex-direction: column; gap: 0.4rem;
+      padding: 1rem 1.1rem; border-radius: 12px; cursor: pointer;
+      border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary);
+      transition: border-color 0.18s ease, transform 0.18s ease;
+    }
+    .bag-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+    .bag-card.is-finished { opacity: 0.6; }
+    .bag-card-name { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; }
+    .bag-card-meta { font-size: 0.82rem; color: var(--text-secondary); }
+    .bag-card-stats { font-size: 0.82rem; color: var(--accent-color); }
 
-    .log-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
+    /* ── Journal: bag timeline ───────────────────────────────── */
+    .bag-header { padding: 0.5rem 0 1rem; border-bottom: 1px solid var(--border-color); }
+    .bag-header-name { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 700; }
+    .best-brew-banner { font-size: 0.8rem; letter-spacing: 0.05em; color: var(--accent-color); text-transform: uppercase; }
+    .method-group-title { font-family: var(--font-serif); font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.75rem; }
+    .brew-card {
+      padding: 1rem 1.1rem; border-radius: 12px; border: 1px solid var(--border-color);
+      background: var(--card-bg); color: var(--text-primary); display: flex; flex-direction: column; gap: 0.6rem;
     }
+    .brew-card.is-best { border-color: var(--accent-color); box-shadow: 0 0 0 1px var(--accent-color) inset; }
+    .brew-card-summary { font-family: var(--font-serif); font-size: 0.95rem; color: var(--text-secondary); }
 
-    .log-toolbar-group {
-      display: flex;
-      gap: 8px;
-    }
-
-    .log-tool-btn {
-      padding: 8px 14px;
-      border: 1px solid var(--border-color);
-      background: var(--card-bg);
-      color: var(--text-secondary);
-      font-family: inherit;
-      font-size: 0.8125rem;
-      letter-spacing: 0.08em;
-      border-radius: 3px;
-      cursor: pointer;
-      min-height: 36px;
-      transition: border-color 0.2s, color 0.2s;
-    }
-
-    .log-tool-btn:hover {
-      border-color: var(--accent-color);
-      color: var(--text-primary);
-    }
-
-    .log-tool-btn.primary {
-      color: var(--text-primary);
-      border-color: var(--text-primary);
-    }
-
-    .log-tool-btn:focus-visible {
-      outline: 2px solid var(--accent-color);
-      outline-offset: 2px;
-    }
-
-    /* Two-page spread — desktop */
-    @keyframes logPageMount {
-      from { opacity: 0; transform: translateX(6px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-
-    .log-spread {
-      background: var(--card-bg);
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.045'/%3E%3C/svg%3E");
-      border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
-      padding: 0;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      min-height: 560px;
-      position: relative;
-      animation: logPageMount 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    /* Corner dot decoration */
-    .log-spread::after {
-      content: "· · · · ·";
-      position: absolute;
-      bottom: 14px;
-      right: 24px;
-      color: var(--text-secondary);
-      opacity: 0.35;
-      letter-spacing: 0.2em;
-      font-size: 0.75rem;
-      pointer-events: none;
-    }
-
-    .log-spread::before {
-      /* gutter: a subtle double-line down the middle like a stitched notebook */
-      content: "";
-      position: absolute;
-      top: 24px;
-      bottom: 24px;
-      left: 50%;
-      width: 1px;
-      background: var(--border-color);
-      box-shadow: -3px 0 0 -2px var(--border-color), 3px 0 0 -2px var(--border-color);
-      pointer-events: none;
-    }
-
-    .log-page {
-      padding: 40px 36px;
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
-    }
-
-    .log-page-left {
-      border-right: none;
-    }
-
-    .log-date-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 16px;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 14px;
-      font-family: var(--font-serif);
-    }
-
-    .log-date {
-      font-size: 1.0625rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      color: var(--text-primary);
-      min-width: 1em;
-    }
-
-    .log-weather {
-      font-family: var(--font-hand);
-      font-size: 1.125rem;
-      color: var(--text-secondary);
-      min-width: 2em;
-      text-align: right;
-    }
-
-    .log-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .log-section-title {
-      font-family: var(--font-serif);
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      letter-spacing: 0.18em;
-    }
-
-    .log-fields {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 6px 14px;
-      font-size: 0.9375rem;
-    }
-
-    .log-field-label {
-      color: var(--text-secondary);
-      font-size: 0.8125rem;
-      letter-spacing: 0.06em;
-      padding-top: 3px;
-      white-space: nowrap;
-    }
-
-    .log-field-value {
-      color: var(--text-primary);
-      font-family: var(--font-hand);
-      font-size: 1.1875rem;
-      min-height: 1.5em;
-      line-height: 1.4;
-      padding: 2px 4px;
-      border-radius: 2px;
-      border-bottom: 1px dotted transparent;
-      transition: border-color 0.2s;
-    }
-
-    .log-field-value:empty::before,
-    .log-field-value.is-empty::before {
-      content: attr(data-placeholder);
-      color: var(--text-secondary);
-      opacity: 0.45;
-      font-style: italic;
-    }
-
-    .log-editable {
-      outline: none;
-    }
-
-    .log-field-value.log-editable:focus,
-    .log-field-value.log-editable:hover {
-      border-bottom-color: var(--border-color);
-    }
-
-    .log-field-value.log-editable:focus {
-      border-bottom-color: var(--accent-color);
-      background: rgba(107, 124, 94, 0.04);
-    }
-
-    .log-prose.log-editable:focus {
-      background: rgba(107, 124, 94, 0.04);
-      box-shadow: inset 0 -1px 0 var(--accent-color);
-    }
-
-    .log-date.log-editable:focus,
-    .log-weather.log-editable:focus {
-      background: rgba(107, 124, 94, 0.04);
-      border-radius: 2px;
-    }
-
-    .log-prose {
-      min-height: 110px;
-      line-height: 1.7;
-      font-family: var(--font-hand);
-      font-size: 1.25rem;
-      color: var(--text-primary);
-      padding: 6px 8px;
-      border-radius: 2px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      background-image: linear-gradient(to bottom,
-        transparent calc(1.7em - 1px),
-        var(--border-color) calc(1.7em - 1px),
-        var(--border-color) 1.7em,
-        transparent 1.7em);
-      background-size: 100% 1.7em;
-      background-position: 0 0.15em;
-      background-repeat: repeat-y;
-    }
-
-    .log-prose:empty::before,
-    .log-prose.is-empty::before {
-      content: attr(data-placeholder);
-      color: var(--text-secondary);
-      opacity: 0.45;
-      font-style: italic;
-    }
-
-    .log-rating {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      margin-top: auto;
-      padding-top: 20px;
-      font-size: 1.25rem;
-      color: var(--accent-color);
-      letter-spacing: 0.2em;
-      user-select: none;
-    }
-
-    .log-star {
-      cursor: pointer;
-      line-height: 1;
-      padding: 2px;
-      transition: transform 0.15s, color 0.15s;
-    }
-
-    .log-star:hover {
-      transform: scale(1.15);
-    }
-
-    .log-star.is-empty {
-      color: var(--text-secondary);
-      opacity: 0.4;
-    }
-
-    .log-pager {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 16px;
-      margin-top: 24px;
-      font-family: var(--font-serif);
-      color: var(--text-secondary);
-    }
-
-    .log-pager-btn {
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 1.125rem;
-      color: var(--text-secondary);
-      padding: 8px 12px;
-      min-width: 44px;
-      min-height: 44px;
-      border-radius: 3px;
-      transition: color 0.2s;
-    }
-
-    .log-pager-btn:hover:not(:disabled) {
-      color: var(--text-primary);
-    }
-
-    .log-pager-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    .log-pager-btn:focus-visible {
-      outline: 2px solid var(--accent-color);
-      outline-offset: 2px;
-    }
-
-    .log-pager-label {
-      font-size: 0.9375rem;
-      letter-spacing: 0.08em;
-      min-width: 80px;
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .log-footer-actions {
-      display: flex;
-      justify-content: center;
-      margin-top: 18px;
-    }
-
-    .log-discard {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-family: inherit;
-      font-size: 0.75rem;
-      letter-spacing: 0.12em;
-      cursor: pointer;
-      opacity: 0.55;
-      padding: 8px 12px;
-      transition: opacity 0.2s, color 0.2s;
-    }
-
-    .log-discard:hover {
-      opacity: 1;
-      color: var(--success-color);
-    }
-
-    /* Empty state */
-    .log-empty {
-      text-align: center;
-      padding: 80px 24px;
-      color: var(--text-secondary);
-      background: var(--card-bg);
-      border-radius: 4px;
-    }
-
-    .log-empty-msg {
-      font-family: var(--font-serif);
-      font-size: 1.125rem;
-      letter-spacing: 0.14em;
-      margin-bottom: 24px;
-      opacity: 0.7;
-    }
-
-    .log-corrupt-banner {
-      background: rgba(184, 134, 11, 0.1);
-      border-left: 2px solid var(--warning-color);
-      padding: 10px 14px;
-      font-size: 0.8125rem;
-      color: var(--warning-color);
-      margin-bottom: 20px;
-      border-radius: 0 3px 3px 0;
-    }
-
-    /* Click-to-open pickers (roast date calendar + roast level options) */
-    .log-field-trigger {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: transparent;
-      border: 0;
-      border-bottom: 1px dotted transparent;
-      padding: 2px 4px;
-      border-radius: 2px;
-      font-family: var(--font-hand);
-      font-size: 1.1875rem;
-      line-height: 1.4;
-      min-height: 1.5em;
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: border-bottom-color 180ms var(--ease-out-expo),
-                  color 180ms var(--ease-out-expo);
-    }
-    .log-field-trigger:hover {
-      border-bottom-color: var(--accent-color);
-    }
-    .log-field-trigger:focus-visible {
-      outline: none;
-      border-bottom-color: var(--accent-color);
-    }
-    .log-field-trigger.is-empty {
-      color: var(--text-secondary);
-    }
-
-    .log-popover {
-      position: absolute;
-      z-index: 100;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(45, 42, 38, 0.14),
-                  0 1px 3px rgba(45, 42, 38, 0.08);
-      opacity: 0;
-      transform: translateY(-4px) scale(0.97);
-      transform-origin: top center;
-      transition: opacity 220ms var(--ease-out-expo),
-                  transform 220ms var(--ease-out-expo);
-      will-change: opacity, transform;
-    }
-    .log-popover.flip-up {
-      transform-origin: bottom center;
-      transform: translateY(4px) scale(0.97);
-    }
-    .log-popover.is-open {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-    .log-popover.is-closing {
-      opacity: 0;
-      transform: translateY(-2px) scale(0.98);
-      transition-duration: 160ms;
-    }
-    .log-popover.flip-up.is-closing {
-      transform: translateY(2px) scale(0.98);
-    }
-
-    .log-level-picker {
-      padding: 6px;
-      min-width: 144px;
-    }
-    .log-level-option {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 9px 12px;
-      border: 0;
-      background: transparent;
-      border-radius: 6px;
-      cursor: pointer;
-      font: inherit;
-      font-family: var(--font-serif);
-      font-size: 0.875rem;
-      letter-spacing: 0.02em;
-      color: var(--text-primary);
-      text-align: left;
-      transition: background-color 140ms var(--ease-out-expo),
-                  color 140ms var(--ease-out-expo);
-    }
-    .log-level-option:hover {
-      background: rgba(107, 124, 94, 0.08);
-    }
-    .log-level-option:focus-visible {
-      outline: none;
-      background: rgba(107, 124, 94, 0.12);
-    }
-    .log-level-option-dot {
-      flex: 0 0 auto;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: transparent;
-      transition: background-color 140ms var(--ease-out-expo);
-    }
-    .log-level-option.is-selected {
-      color: var(--accent-color);
-    }
-    .log-level-option.is-selected .log-level-option-dot {
-      background: var(--accent-color);
-    }
-
-    .log-calendar {
-      width: 252px;
-      padding: 14px;
-    }
-    .log-cal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .log-cal-title {
-      font-family: var(--font-serif);
-      font-size: 0.875rem;
-      letter-spacing: 0.06em;
-      color: var(--text-primary);
-    }
-    .log-cal-nav {
-      width: 28px;
-      height: 28px;
-      border: 0;
-      background: transparent;
-      border-radius: 6px;
-      cursor: pointer;
-      color: var(--text-secondary);
-      font-size: 14px;
-      line-height: 1;
-      transition: background-color 140ms var(--ease-out-expo),
-                  color 140ms var(--ease-out-expo);
-    }
-    .log-cal-nav:hover {
-      background: rgba(107, 124, 94, 0.08);
-      color: var(--text-primary);
-    }
-    .log-cal-nav:focus-visible {
-      outline: none;
-      background: rgba(107, 124, 94, 0.12);
-      color: var(--text-primary);
-    }
-    .log-cal-weekdays,
-    .log-cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-    }
-    .log-cal-wd {
-      text-align: center;
-      font-size: 0.6875rem;
-      color: var(--text-secondary);
-      letter-spacing: 0.08em;
-      padding: 4px 0;
-    }
-    .log-cal-grid {
-      margin-top: 4px;
-    }
-    .log-cal-day {
-      width: 32px;
-      height: 32px;
-      margin: 0 auto;
-      border: 0;
-      background: transparent;
-      border-radius: 50%;
-      cursor: pointer;
-      font-family: var(--font-serif);
-      font-size: 0.8125rem;
-      color: var(--text-primary);
-      transition: background-color 140ms var(--ease-out-expo),
-                  color 140ms var(--ease-out-expo),
-                  transform 80ms var(--ease-out-expo);
-    }
-    .log-cal-day:hover {
-      background: rgba(107, 124, 94, 0.10);
-    }
-    .log-cal-day:active {
-      transform: scale(0.92);
-    }
-    .log-cal-day:focus-visible {
-      outline: none;
-      background: rgba(107, 124, 94, 0.14);
-    }
-    .log-cal-day.is-other {
-      opacity: 0.28;
-    }
-    .log-cal-day.is-today {
-      box-shadow: inset 0 0 0 1px var(--accent-color);
-    }
-    .log-cal-day.is-selected {
-      background: var(--accent-color);
-      color: #faf8f4;
-    }
-    .log-cal-day.is-selected.is-today {
-      box-shadow: none;
-    }
-
-    @media (max-width: 899px) {
-      .log-spread {
-        grid-template-columns: 1fr;
-        min-height: auto;
-      }
-
-      .log-spread::before {
-        display: none;
-      }
-
-      .log-page {
-        padding: 32px 24px;
-      }
-
-      .log-page-left {
-        border-bottom: 1px solid var(--border-color);
-      }
-    }
+    /* ── Journal: brew editor (open card) ────────────────────── */
+    .bag-header-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem; }
+    .bag-id-field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .bag-id-label { font-size: 0.72rem; color: var(--text-secondary); }
+    .bag-id-value { font-family: var(--font-serif); min-width: 6ch; }
+    .brew-card-head { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .brew-date { font-family: var(--font-serif); }
+    .brew-rating { margin-left: auto; }
+    .log-star { cursor: pointer; color: var(--accent-color); font-size: 1.1rem; }
+    .log-star.is-empty { color: var(--border-color); }
+    .brew-fields { display: grid; grid-template-columns: auto 1fr; gap: 0.45rem 1rem; align-items: baseline; }
+    .brew-field-label { font-size: 0.78rem; color: var(--text-secondary); }
+    .brew-field-value { position: relative; }
+    .brew-grind-cell { display: flex; align-items: baseline; gap: 0.5rem; }
+    .brew-grind-cell .brew-field-value { flex: 1; }
+    .brew-section-title { font-size: 0.8rem; color: var(--text-secondary); margin: 0.6rem 0 0.2rem; }
+    .brew-prose { min-height: 3rem; line-height: 1.6; }
+    .log-editable:focus { outline: none; }
+    .log-editable.is-empty::before { content: attr(data-placeholder); color: var(--text-secondary); opacity: 0.55; }
+    .brew-footer-actions { margin-top: 0.75rem; }
+    .brew-discard { background: none; border: none; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; }
+    .grind-translate-btn { font-size: 0.72rem; cursor: pointer; white-space: nowrap;
+      border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--accent-color); padding: 0 0.4rem; }
 
     .header h1 {
       font-family: var(--font-serif);
@@ -1133,17 +625,6 @@
         --warning-color: #b8a060;
       }
 
-      .log-spread {
-        background-color: #2b2620;
-      }
-
-      .log-field-value.log-editable:focus,
-      .log-prose.log-editable:focus,
-      .log-date.log-editable:focus,
-      .log-weather.log-editable:focus {
-        background: rgba(138, 158, 122, 0.08);
-      }
-
       .grinder-select {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9287' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
       }
@@ -1211,19 +692,23 @@
 
     <!-- Header -->
     <header class="header">
-      <h1 id="title">磨豆机刻度转换器</h1>
-      <p class="subtitle" id="subtitle">C40 ↔ K-Ultra ↔ EK43</p>
+      <h1 id="title">冲煮手记</h1>
+      <p class="subtitle" id="subtitle">记录每一次冲煮，逐步逼近那一杯</p>
     </header>
 
-    <!-- View Switcher -->
+    <!-- View Switcher (Journal primary) -->
     <nav class="view-switcher" aria-label="视图切换">
-      <button class="view-btn active" data-view="converter" id="viewBtnConverter">换算</button>
+      <button class="view-btn active" data-view="journal" id="viewBtnJournal">手记</button>
       <span class="view-sep" aria-hidden="true">｜</span>
-      <button class="view-btn" data-view="log" id="viewBtnLog">日志</button>
+      <button class="view-btn" data-view="convert" id="viewBtnConverter">换算</button>
     </nav>
 
     <main>
-    <div class="view" id="converterView">
+    <div class="view" id="journalView">
+      <!-- Dashboard / bag timeline / brew editor mount here (rendered by renderJournal) -->
+    </div>
+
+    <div class="view" id="converterView" hidden>
     <!-- Direction Selection -->
     <div class="card">
       <div class="card-title" id="directionLabel">转换方向</div>
@@ -1290,10 +775,6 @@
       转换基于官方资料与 Honest Coffee Guide 社区对照数据校准（核验日期：2026-02-16），请根据实际口感微调
     </div>
     </div><!-- /#converterView -->
-
-    <div class="view" id="logView" hidden>
-      <!-- Brew Log view — UI is mounted in stage 3 -->
-    </div>
     </main>
   </div>
 
@@ -1326,8 +807,8 @@
     // i18n
     const i18n = {
       zh: {
-        title: "磨豆机刻度转换器",
-        subtitle: "C40 ↔ K-Ultra ↔ EK43",
+        title: "冲煮手记",
+        subtitle: "记录每一次冲煮，逐步逼近那一杯",
         directionLabel: "转换方向",
         inputLabel: "输入刻度",
         inputPlaceholder: "20",
@@ -1344,8 +825,8 @@
         sourceLabel: "源设备",
         targetLabel: "目标设备",
         resultRegion: "转换结果",
+        tabJournal: "手记",
         tabConverter: "换算",
-        tabLog: "日志",
         recordThisBrew: "记录这次冲煮 →",
         grinders: {
           c40: "Comandante C40",
@@ -1368,8 +849,8 @@
         }
       },
       en: {
-        title: "Grinder Setting Converter",
-        subtitle: "C40 ↔ K-Ultra ↔ EK43",
+        title: "Brew Journal",
+        subtitle: "Log every brew; close in on the cup",
         directionLabel: "Conversion Direction",
         inputLabel: "Input Setting",
         inputPlaceholder: "20",
@@ -1386,8 +867,8 @@
         sourceLabel: "Source grinder",
         targetLabel: "Target grinder",
         resultRegion: "Conversion result",
+        tabJournal: "Journal",
         tabConverter: "Converter",
-        tabLog: "Journal",
         recordThisBrew: "Record this brew →",
         grinders: {
           c40: "Comandante C40",
@@ -1441,8 +922,8 @@
       notationExample: document.getElementById('notationExample'),
       disclaimer: document.getElementById('disclaimer'),
       directionArrow: document.getElementById('directionArrow'),
+      viewBtnJournal: document.getElementById('viewBtnJournal'),
       viewBtnConverter: document.getElementById('viewBtnConverter'),
-      viewBtnLog: document.getElementById('viewBtnLog'),
       logLinkBtn: document.getElementById('logLinkBtn')
     };
 
@@ -1593,8 +1074,8 @@
       elements.resultUnit.textContent = t.units[targetGrinder];
 
       // View-switcher tabs + log-link button
+      if (elements.viewBtnJournal) elements.viewBtnJournal.textContent = t.tabJournal;
       if (elements.viewBtnConverter) elements.viewBtnConverter.textContent = t.tabConverter;
-      if (elements.viewBtnLog) elements.viewBtnLog.textContent = t.tabLog;
       if (elements.logLinkBtn) elements.logLinkBtn.textContent = t.recordThisBrew;
     }
 
@@ -1825,9 +1306,267 @@
         return null;
       }
 
+      const JOURNAL_VERSION = 2;
+      const STORAGE_KEY_V2 = 'grinder-brew-journal-v2';
+
+      function createBrew(overrides) {
+        return {
+          id: newId(),
+          createdAt: new Date().toISOString(),
+          date: todayISO(),
+          weather: '',
+          grinderSetting: '',
+          brew: {
+            method: '', dripper: '', waterTempC: '',
+            dose: '', yield: '', totalTimeSec: '', pourSegments: ''
+          },
+          extraction: { tds: '', ey: '' },
+          rating: 0,
+          flavorNotes: '',
+          reflection: '',
+          ...(overrides || {})
+        };
+      }
+
+      function createBag(overrides) {
+        return {
+          id: newId(),
+          schemaVersion: JOURNAL_VERSION,
+          createdAt: new Date().toISOString(),
+          name: '',
+          origin: '',
+          roastDate: '',
+          roastLevel: '',
+          grinderModel: '',
+          status: 'active',
+          brews: [],
+          ...(overrides || {})
+        };
+      }
+
+      function bagKey(name, roastDate) {
+        return String(name || '').trim().toLowerCase()
+          + ' ' + String(roastDate || '').trim();
+      }
+
+      // Deterministic djb2 hash → base36, so identical (name+roastDate) always
+      // yields the same bag id (idempotent migration + re-import).
+      function bagIdFromKey(key) {
+        let h = 5381;
+        for (let i = 0; i < key.length; i++) {
+          h = (((h << 5) + h) + key.charCodeAt(i)) >>> 0;
+        }
+        return 'bag_' + h.toString(36);
+      }
+
+      // Grouping/merge key. Bags with a real natural identity (a name and/or a
+      // roast date) consolidate by it; a bag with NO identity at all has nothing
+      // to merge on, so it keys by its own id (prefixed with a NUL byte so it can
+      // never collide with a natural key). Prevents identity-less bags from
+      // collapsing into one — which would drop/duplicate bags on import.
+      function bagGroupKey(name, roastDate, id) {
+        const natural = bagKey(name, roastDate);
+        return natural.trim() === '' ? '\u0000' + (id || '') : natural;
+      }
+
+      function sanitizeBrew(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+        if (typeof raw.id !== 'string' || !raw.id) return null;
+        const base = createBrew({ id: raw.id });
+        for (const k of ['createdAt', 'date', 'weather', 'grinderSetting',
+                         'rating', 'flavorNotes', 'reflection']) {
+          if (k in raw && isPrimitiveScalar(raw[k])) base[k] = raw[k];
+        }
+        const groups = {
+          brew: ['method', 'dripper', 'waterTempC', 'dose', 'yield',
+                 'totalTimeSec', 'pourSegments'],
+          extraction: ['tds', 'ey']
+        };
+        for (const [g, fields] of Object.entries(groups)) {
+          const src = raw[g];
+          if (src && typeof src === 'object' && !Array.isArray(src)) {
+            for (const f of fields) {
+              if (f in src && isPrimitiveScalar(src[f])) base[g][f] = src[f];
+            }
+          }
+        }
+        const r = Number(base.rating);
+        base.rating = Number.isFinite(r) ? Math.max(0, Math.min(5, Math.round(r))) : 0;
+        return base;
+      }
+
+      function sanitizeBag(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+        if (typeof raw.id !== 'string' || !raw.id) return null;
+        const base = createBag({ id: raw.id });
+        for (const k of ['schemaVersion', 'createdAt', 'name', 'origin',
+                         'roastDate', 'roastLevel', 'grinderModel']) {
+          if (k in raw && isPrimitiveScalar(raw[k])) base[k] = raw[k];
+        }
+        base.roastLevel = normalizeRoastLevel(base.roastLevel);
+        base.status = (raw.status === 'finished') ? 'finished' : 'active';
+        base.brews = Array.isArray(raw.brews)
+          ? raw.brews.map(sanitizeBrew).filter(Boolean)
+          : [];
+        return base;
+      }
+
+      // Consolidate sanitized v1 entries into v2 bags, keyed by (name + roastDate).
+      // Bag identity fields are seeded from the first entry seen in each group;
+      // brews keep their original entry id and createdAt for idempotent re-import.
+      function migrateEntriesToBags(entries) {
+        const order = [];
+        const byKey = new Map();
+        for (const entry of (entries || [])) {
+          const beans = entry.beans || {};
+          const grinder = entry.grinder || {};
+          const key = bagGroupKey(beans.name, beans.roastDate, entry.id);
+          let bag = byKey.get(key);
+          if (!bag) {
+            bag = createBag({
+              id: bagIdFromKey(key),
+              createdAt: entry.createdAt || new Date().toISOString(),
+              name: beans.name || '',
+              origin: beans.origin || '',
+              roastDate: beans.roastDate || '',
+              roastLevel: beans.roastLevel || '',
+              grinderModel: grinder.model || '',
+              brews: []
+            });
+            byKey.set(key, bag);
+            order.push(key);
+          } else if ((entry.createdAt || '') < (bag.createdAt || '')) {
+            bag.createdAt = entry.createdAt;
+          }
+          bag.brews.push(createBrew({
+            id: entry.id,
+            createdAt: entry.createdAt || new Date().toISOString(),
+            date: entry.date || '',
+            weather: entry.weather || '',
+            grinderSetting: grinder.setting || '',
+            brew: Object.assign({}, entry.brew),
+            extraction: Object.assign({}, entry.extraction),
+            rating: entry.rating || 0,
+            flavorNotes: entry.flavorNotes || '',
+            reflection: entry.reflection || ''
+          }));
+        }
+        return order.map(k => byKey.get(k));
+      }
+
+      function bagsFromParsed(parsed) {
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && Array.isArray(parsed.bags)) return parsed.bags;
+        return null;
+      }
+
+      function saveJournal(bags) {
+        try {
+          if (typeof localStorage === 'undefined') return { ok: false, reason: 'unavailable' };
+          localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(bags));
+          return { ok: true };
+        } catch (err) {
+          const reason = (err && err.name === 'QuotaExceededError') ? 'quota' : 'unknown';
+          return { ok: false, reason };
+        }
+      }
+
+      function loadJournal() {
+        try {
+          const rawV2 = (typeof localStorage !== 'undefined')
+            ? localStorage.getItem(STORAGE_KEY_V2) : null;
+          if (rawV2) {
+            const arr = bagsFromParsed(JSON.parse(rawV2));
+            if (!Array.isArray(arr)) return { bags: [], corrupt: true, migrated: false };
+            return { bags: arr.map(sanitizeBag).filter(Boolean), corrupt: false, migrated: false };
+          }
+          // No v2 yet — migrate from v1 if present, persist, keep v1 as backup.
+          const v1 = load();
+          if (v1.entries.length === 0) {
+            return { bags: [], corrupt: v1.corrupt, migrated: false };
+          }
+          const bags = migrateEntriesToBags(v1.entries);
+          saveJournal(bags);
+          return { bags, corrupt: v1.corrupt, migrated: true };
+        } catch (_) {
+          return { bags: [], corrupt: true, migrated: false };
+        }
+      }
+
+      function exportJournal(bags) {
+        return {
+          schemaVersion: JOURNAL_VERSION,
+          exportedAt: new Date().toISOString(),
+          bags: bags
+        };
+      }
+
+      // Accept v2 (payload {bags} or raw bag array) or v1 ({entries}/array/schemaVersion 1).
+      // v1 shapes are migrated to bags so import is shape-agnostic.
+      function extractBags(parsed) {
+        if (parsed && parsed.schemaVersion === 1) {
+          const entries = extractEntries(parsed);
+          return entries ? migrateEntriesToBags(entries.map(sanitizeEntry).filter(Boolean)) : null;
+        }
+        const v2 = bagsFromParsed(parsed);
+        if (v2) {
+          // A raw array of v1 entries has no `brews`; treat as v1 and migrate.
+          const looksLikeBags = v2.length === 0 || (v2[0] && Array.isArray(v2[0].brews));
+          if (looksLikeBags) return v2;
+          return migrateEntriesToBags(v2.map(sanitizeEntry).filter(Boolean));
+        }
+        const entries = extractEntries(parsed);
+        if (entries) return migrateEntriesToBags(entries.map(sanitizeEntry).filter(Boolean));
+        return null;
+      }
+
+      function mergeJournalImport(existing, incoming) {
+        if (!Array.isArray(incoming)) return { bags: existing, addedBags: 0, addedBrews: 0 };
+        const order = existing.map(b => bagGroupKey(b.name, b.roastDate, b.id));
+        const byKey = new Map(existing.map(b => [bagGroupKey(b.name, b.roastDate, b.id), b]));
+        let addedBags = 0;
+        let addedBrews = 0;
+        for (const raw of incoming) {
+          const clean = sanitizeBag(raw);
+          if (!clean) continue;
+          const key = bagGroupKey(clean.name, clean.roastDate, clean.id);
+          const prev = byKey.get(key);
+          if (!prev) {
+            byKey.set(key, clean);
+            order.push(key);
+            addedBags++;
+            addedBrews += clean.brews.length;
+            continue;
+          }
+          const brewById = new Map(prev.brews.map(b => [b.id, b]));
+          for (const nb of clean.brews) {
+            const old = brewById.get(nb.id);
+            if (!old) { brewById.set(nb.id, nb); addedBrews++; }
+            else if ((nb.createdAt || '') > (old.createdAt || '')) { brewById.set(nb.id, nb); }
+          }
+          prev.brews = Array.from(brewById.values());
+        }
+        return { bags: order.map(k => byKey.get(k)), addedBags, addedBrews };
+      }
+
+      function bestBrew(bag) {
+        if (!bag || !Array.isArray(bag.brews) || bag.brews.length === 0) return null;
+        let best = null;
+        for (const b of bag.brews) {
+          const r = Number(b.rating) || 0;
+          if (r <= 0) continue;
+          if (!best) { best = b; continue; }
+          const br = Number(best.rating) || 0;
+          if (r > br || (r === br && (b.createdAt || '') > (best.createdAt || ''))) best = b;
+        }
+        return best;
+      }
+
       return {
         STORAGE_KEY,
+        STORAGE_KEY_V2,
         SCHEMA_VERSION,
+        JOURNAL_VERSION,
         createEntry,
         sanitizeEntry,
         load,
@@ -1836,22 +1575,36 @@
         exportPayload,
         extractEntries,
         todayISO,
-        newId
+        newId,
+        createBag,
+        createBrew,
+        bagKey,
+        bagIdFromKey,
+        sanitizeBag,
+        sanitizeBrew,
+        migrateEntriesToBags,
+        loadJournal,
+        saveJournal,
+        exportJournal,
+        extractBags,
+        mergeJournalImport,
+        bestBrew
       };
     })();
 
     // ─────────────────────────────────────────────────────────────
     // Router: hash-based view switching
-    //   #/            → converter  (default)
-    //   #/log         → brew log home
-    //   #/log/<id>    → specific entry
+    //   #/                     → dashboard (default; legacy #/log[/<id>] too)
+    //   #/bag/<id>[/<brewId>]  → bag timeline + (optional) open brew editor
+    //   #/convert              → converter
     // ─────────────────────────────────────────────────────────────
     function parseRoute(hash) {
       const h = (hash || '').replace(/^#/, '').trim();
-      if (!h || h === '/' || h === '/converter') return { view: 'converter' };
-      const m = h.match(/^\/log(?:\/(.+))?$/);
-      if (m) return { view: 'log', entryId: m[1] || null };
-      return { view: 'converter' };
+      if (h === '/convert') return { view: 'convert' };
+      const bag = h.match(/^\/bag\/([^/]+)(?:\/([^/]+))?$/);
+      if (bag) return { view: 'bag', bagId: bag[1], brewId: bag[2] || null };
+      // '', '/', legacy '/log' and '/log/<id>' all land on the dashboard.
+      return { view: 'dashboard' };
     }
 
     function navigate(hash) {
@@ -1863,128 +1616,75 @@
     }
 
     function applyRoute() {
-      if (typeof closeActivePopover === 'function') closeActivePopover();
       const route = parseRoute(typeof location !== 'undefined' ? location.hash : '');
+      const journalView = document.getElementById('journalView');
       const converterView = document.getElementById('converterView');
-      const logView = document.getElementById('logView');
+      const btnJournal = document.getElementById('viewBtnJournal');
       const btnConverter = document.getElementById('viewBtnConverter');
-      const btnLog = document.getElementById('viewBtnLog');
 
-      const isLog = route.view === 'log';
-      if (converterView) converterView.hidden = isLog;
-      if (logView) logView.hidden = !isLog;
-      if (btnConverter) btnConverter.classList.toggle('active', !isLog);
-      if (btnLog) btnLog.classList.toggle('active', isLog);
+      const isConvert = route.view === 'convert';
+      if (journalView) journalView.hidden = isConvert;
+      if (converterView) converterView.hidden = !isConvert;
+      if (btnJournal) btnJournal.classList.toggle('active', !isConvert);
+      if (btnConverter) btnConverter.classList.toggle('active', isConvert);
 
-      if (isLog && typeof renderLogView === 'function') {
-        renderLogView(route.entryId);
+      if (!isConvert && typeof renderJournal === 'function') {
+        renderJournal(route);
       }
     }
 
     // ─────────────────────────────────────────────────────────────
     // Brew Log view rendering
     // ─────────────────────────────────────────────────────────────
-    const LOG_FIELD_SCHEMA = [
-      {
-        section: 'beans', titleKey: 'secBeans',
-        fields: [
-          { key: 'name', labelKey: 'beansName' },
-          { key: 'origin', labelKey: 'beansOrigin' },
-          { key: 'roastDate', labelKey: 'beansRoastDate', picker: 'date' },
-          { key: 'roastLevel', labelKey: 'beansRoastLevel', picker: 'level' }
-        ]
-      },
-      {
-        section: 'grinder', titleKey: 'secGrinder',
-        fields: [
-          { key: 'model', labelKey: 'grinderModel' },
-          { key: 'setting', labelKey: 'grinderSetting' }
-        ]
-      },
-      {
-        section: 'brew', titleKey: 'secBrew',
-        fields: [
-          { key: 'method', labelKey: 'brewMethod' },
-          { key: 'dripper', labelKey: 'brewDripper' },
-          { key: 'waterTempC', labelKey: 'brewWaterTemp' },
-          { key: 'dose', labelKey: 'brewDose' },
-          { key: 'yield', labelKey: 'brewYield' },
-          { key: 'totalTimeSec', labelKey: 'brewTime' },
-          { key: 'pourSegments', labelKey: 'brewPours' }
-        ]
-      },
-      {
-        section: 'extraction', titleKey: 'secExtraction',
-        fields: [
-          { key: 'tds', labelKey: 'extractionTds' },
-          { key: 'ey', labelKey: 'extractionEy' }
-        ]
-      }
-    ];
-
     // Short provisional labels (Chinese first; full i18n lands in stage 6).
     const LOG_LABELS = {
       zh: {
-        tabConverter: '换算', tabLog: '日志',
-        newEntry: '+ 新建', importBtn: '导入', exportBtn: '导出',
-        empty: '— 还是空白的 —', newFirst: '+ 新建一篇',
-        discard: '丢弃此页',
+        importBtn: '导入', exportBtn: '导出',
+        newBag: '+ 新建', newFirstBag: '+ 记第一袋豆子',
+        emptyBags: '— 还没有豆子 —', untitledBag: '未命名',
+        backToBags: '← 返回', newBrew: '+ 记一杯', newFirstBrew: '+ 记第一杯',
+        emptyBrews: '— 还没有冲煮记录 —',
+        bestBrewLabel: '当前最佳', methodless: '未分组',
+        brewCount: (n) => `${n} 杯`,
+        bagName: '名称', bagOrigin: '产地', bagRoastDate: '烘焙日期',
+        bagRoastLevel: '烘焙度', bagGrinderModel: '磨豆机',
+        brewGrindSetting: '刻度', translateGrind: '换算 ⇄',
+        discardBrew: '丢弃这一杯',
         discardConfirm: '确定丢弃这一页？此操作不可撤销。',
         corrupt: '读取到损坏的日志数据，已忽略无法解析的记录。',
         importPrompt: '粘贴日志 JSON（或取消）',
         importOk: (n) => `导入 ${n} 条`,
         importNone: '没有新增记录',
         weatherPh: '天气',
-        secBeans: '豆子', secGrinder: '磨豆机', secBrew: '冲煮', secExtraction: '萃取',
         secFlavor: '风味', secReflection: '复盘',
-        beansName: '名称', beansOrigin: '产地', beansRoastDate: '烘焙日期', beansRoastLevel: '烘焙度',
-        grinderModel: '机型', grinderSetting: '刻度',
         brewMethod: '方式', brewDripper: '滤杯', brewWaterTemp: '水温 °C', brewDose: '粉量 g',
         brewYield: '出液 g', brewTime: '总时间 s', brewPours: '注水',
         extractionTds: 'TDS %', extractionEy: '萃取率 %',
-        fieldPh: '⋯⋯', prosePh: '写点什么…',
-        pickerPh: '点击选择',
-        roastLevel_veryLight: '超浅烘',
-        roastLevel_light:     '浅烘',
-        roastLevel_medium:    '中烘',
-        roastLevel_dark:      '深烘',
-        calendarPrev: '上个月', calendarNext: '下个月',
-        calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
-        calendarTitle: (y, m) => `${y} 年 ${m} 月`,
-        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+        fieldPh: '⋯⋯', prosePh: '写点什么…'
       },
       en: {
-        tabConverter: 'Converter', tabLog: 'Journal',
-        newEntry: '+ New', importBtn: 'Import', exportBtn: 'Export',
-        empty: '— still blank —', newFirst: '+ Start a page',
-        discard: 'discard this page',
+        importBtn: 'Import', exportBtn: 'Export',
+        newBag: '+ New', newFirstBag: '+ Add your first bag',
+        emptyBags: '— no bags yet —', untitledBag: 'Untitled',
+        backToBags: '← Back', newBrew: '+ New brew', newFirstBrew: '+ Log your first brew',
+        emptyBrews: '— no brews yet —',
+        bestBrewLabel: 'Best so far', methodless: 'Ungrouped',
+        brewCount: (n) => `${n} brew${n === 1 ? '' : 's'}`,
+        bagName: 'name', bagOrigin: 'origin', bagRoastDate: 'roast date',
+        bagRoastLevel: 'roast', bagGrinderModel: 'grinder',
+        brewGrindSetting: 'grind', translateGrind: 'convert ⇄',
+        discardBrew: 'discard this brew',
         discardConfirm: 'Discard this page? This cannot be undone.',
         corrupt: 'Some log entries were unreadable and have been skipped.',
         importPrompt: 'Paste journal JSON (or cancel)',
         importOk: (n) => `imported ${n}`,
         importNone: 'nothing new to import',
         weatherPh: 'weather',
-        secBeans: 'Beans', secGrinder: 'Grinder', secBrew: 'Brew', secExtraction: 'Extraction',
         secFlavor: 'Flavor', secReflection: 'Reflection',
-        beansName: 'name', beansOrigin: 'origin', beansRoastDate: 'roast date', beansRoastLevel: 'roast',
-        grinderModel: 'model', grinderSetting: 'setting',
         brewMethod: 'method', brewDripper: 'dripper', brewWaterTemp: 'water °C', brewDose: 'dose g',
         brewYield: 'yield g', brewTime: 'time s', brewPours: 'pours',
         extractionTds: 'TDS %', extractionEy: 'EY %',
-        fieldPh: '⋯⋯', prosePh: 'write something…',
-        pickerPh: 'Tap to choose',
-        roastLevel_veryLight: 'Extra light',
-        roastLevel_light:     'Light',
-        roastLevel_medium:    'Medium',
-        roastLevel_dark:      'Dark',
-        calendarPrev: 'Previous month', calendarNext: 'Next month',
-        calendarWeekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-        calendarTitle: (y, m) => {
-          const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'];
-          return `${months[m - 1]} ${y}`;
-        },
-        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+        fieldPh: '⋯⋯', prosePh: 'write something…'
       }
     };
 
@@ -2043,344 +1743,299 @@
       return node;
     }
 
-    function renderLogView(entryId) {
-      const root = document.getElementById('logView');
+    function renderJournal(route) {
+      const root = document.getElementById('journalView');
       if (!root) return;
       clearChildren(root);
+      const { bags, corrupt } = BrewLog.loadJournal();
 
-      const L = logLabels();
-      const { entries, corrupt } = BrewLog.load();
-      const shell = el('div', { class: 'log-shell' });
-
-      const toolbar = el('div', { class: 'log-toolbar' }, [
-        el('div', { class: 'log-toolbar-group' }, [
-          el('button', {
-            class: 'log-tool-btn primary',
-            type: 'button',
-            text: L.newEntry,
-            onclick: onNewEntry
-          })
-        ]),
-        el('div', { class: 'log-toolbar-group' }, [
-          el('button', { class: 'log-tool-btn', type: 'button', text: L.importBtn, onclick: onImport }),
-          el('button', { class: 'log-tool-btn', type: 'button', text: L.exportBtn, onclick: onExport })
-        ])
-      ]);
-      shell.appendChild(toolbar);
-
-      if (corrupt) {
-        shell.appendChild(el('div', { class: 'log-corrupt-banner', text: L.corrupt }));
+      if (route.view === 'bag') {
+        const bag = bags.find(b => b.id === route.bagId);
+        if (!bag) { renderDashboard(root, bags, corrupt); return; }
+        renderBagView(root, bags, bag, route.brewId);
+        return;
       }
+      renderDashboard(root, bags, corrupt);
+    }
 
-      if (entries.length === 0) {
-        shell.appendChild(el('div', { class: 'log-empty' }, [
-          el('div', { class: 'log-empty-msg', text: L.empty }),
-          el('button', {
-            class: 'log-tool-btn primary', type: 'button',
-            text: L.newFirst, onclick: onNewEntry
-          })
+    function renderDashboard(root, bags, corrupt) {
+      const L = logLabels();
+      const shell = el('div', { class: 'journal-shell' });
+
+      shell.appendChild(el('div', { class: 'journal-toolbar' }, [
+        el('div', { class: 'journal-toolbar-group' }, [
+          el('button', { class: 'journal-btn primary', type: 'button', text: L.newBag, onclick: onNewBag })
+        ]),
+        el('div', { class: 'journal-toolbar-group' }, [
+          el('button', { class: 'journal-btn', type: 'button', text: L.importBtn, onclick: onImportJournal }),
+          el('button', { class: 'journal-btn', type: 'button', text: L.exportBtn, onclick: onExportJournal })
+        ])
+      ]));
+
+      if (corrupt) shell.appendChild(el('div', { class: 'journal-corrupt-banner', text: L.corrupt }));
+
+      if (bags.length === 0) {
+        shell.appendChild(el('div', { class: 'journal-empty' }, [
+          el('div', { class: 'journal-empty-msg', text: L.emptyBags }),
+          el('button', { class: 'journal-btn primary', type: 'button', text: L.newFirstBag, onclick: onNewBag })
         ]));
         root.appendChild(shell);
         return;
       }
 
-      let idx = entryId ? entries.findIndex(e => e.id === entryId) : -1;
-      if (idx < 0) idx = 0;
-      const entry = entries[idx];
+      const grid = el('div', { class: 'bag-grid' });
+      for (const bag of bags) grid.appendChild(renderBagCard(bag));
+      shell.appendChild(grid);
+      root.appendChild(shell);
+    }
 
-      shell.appendChild(renderSpread(entry));
-      shell.appendChild(renderPager(entries, idx));
-      shell.appendChild(renderFooterActions(entry));
+    function renderBagCard(bag) {
+      const L = logLabels();
+      const best = BrewLog.bestBrew(bag);
+      const card = el('button', {
+        class: 'bag-card' + (bag.status === 'finished' ? ' is-finished' : ''),
+        type: 'button', 'data-bag-id': bag.id
+      }, [
+        el('div', { class: 'bag-card-name', text: bag.name || L.untitledBag }),
+        el('div', { class: 'bag-card-meta', text: [
+          bag.origin, formatRoastDate(bag.roastDate), bag.grinderModel
+        ].filter(Boolean).join(' · ') }),
+        el('div', { class: 'bag-card-stats', text:
+          L.brewCount(bag.brews.length) + (best ? ' · ' + '✦'.repeat(Math.max(0, Math.min(5, best.rating))) : '')
+        })
+      ]);
+      card.addEventListener('click', () => navigate('#/bag/' + bag.id));
+      return card;
+    }
+
+    function onNewBag() {
+      const { bags } = BrewLog.loadJournal();
+      const bag = BrewLog.createBag();
+      BrewLog.saveJournal([bag, ...bags]);
+      navigate('#/bag/' + bag.id);
+    }
+
+    function onExportJournal() {
+      const { bags } = BrewLog.loadJournal();
+      const payload = BrewLog.exportJournal(bags);
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `brew-journal-${BrewLog.todayISO()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function onImportJournal() {
+      const L = logLabels();
+      if (typeof prompt !== 'function') return;
+      const raw = prompt(L.importPrompt);
+      if (!raw) return;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { return; }
+      const incoming = BrewLog.extractBags(parsed);
+      if (!incoming) return;
+      const { bags } = BrewLog.loadJournal();
+      const { bags: merged, addedBags, addedBrews } = BrewLog.mergeJournalImport(bags, incoming);
+      BrewLog.saveJournal(merged);
+      if (typeof alert === 'function') {
+        const added = addedBags + addedBrews;
+        alert(added > 0 ? L.importOk(added) : L.importNone);
+      }
+      applyRoute();
+    }
+
+    function renderBagView(root, bags, bag, brewId) {
+      const L = logLabels();
+      const shell = el('div', { class: 'journal-shell', 'data-bag-id': bag.id });
+
+      shell.appendChild(el('div', { class: 'journal-toolbar' }, [
+        el('div', { class: 'journal-toolbar-group' }, [
+          el('button', { class: 'journal-btn', type: 'button', text: L.backToBags,
+            onclick: () => navigate('#/') })
+        ]),
+        el('div', { class: 'journal-toolbar-group' }, [
+          el('button', { class: 'journal-btn primary', type: 'button', text: L.newBrew,
+            onclick: () => onNewBrew(bag.id) })
+        ])
+      ]));
+
+      shell.appendChild(renderBagHeader(bag));
+
+      if (bag.brews.length === 0) {
+        shell.appendChild(el('div', { class: 'journal-empty' }, [
+          el('div', { class: 'journal-empty-msg', text: L.emptyBrews }),
+          el('button', { class: 'journal-btn primary', type: 'button', text: L.newFirstBrew,
+            onclick: () => onNewBrew(bag.id) })
+        ]));
+        root.appendChild(shell);
+        return;
+      }
+
+      const best = BrewLog.bestBrew(bag);
+      if (best) {
+        shell.appendChild(el('div', { class: 'best-brew-banner', text: L.bestBrewLabel }));
+        shell.appendChild(renderBrewCard(bag, best, brewId === best.id, true));
+      }
+
+      // Group remaining brews by method (compare like-with-like).
+      const rest = bag.brews.filter(b => !best || b.id !== best.id);
+      const byMethod = new Map();
+      for (const b of rest) {
+        const m = (b.brew && b.brew.method) ? String(b.brew.method) : L.methodless;
+        if (!byMethod.has(m)) byMethod.set(m, []);
+        byMethod.get(m).push(b);
+      }
+      for (const [method, group] of byMethod) {
+        shell.appendChild(el('div', { class: 'method-group-title', text: method }));
+        group
+          .slice()
+          .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+          .forEach(b => shell.appendChild(renderBrewCard(bag, b, brewId === b.id, false)));
+      }
 
       root.appendChild(shell);
     }
 
-    function renderSpread(entry) {
+    function onNewBrew(bagId) {
+      const { bags } = BrewLog.loadJournal();
+      const bag = bags.find(b => b.id === bagId);
+      if (!bag) return;
+      const brew = BrewLog.createBrew();
+      bag.brews = [brew, ...bag.brews];
+      BrewLog.saveJournal(bags);
+      navigate('#/bag/' + bagId + '/' + brew.id);
+    }
+
+    function renderBagHeader(bag) {
       const L = logLabels();
-      const leftPage = el('section', { class: 'log-page log-page-left' });
+      const field = (fieldKey, labelKey, value, opts) => el('div', { class: 'bag-id-field' }, [
+        el('div', { class: 'bag-id-label', text: L[labelKey] }),
+        el('div', Object.assign({
+          class: 'bag-id-value log-editable' + (value ? '' : ' is-empty'),
+          contenteditable: 'true', spellcheck: 'false',
+          'data-scope': 'bag', 'data-field': fieldKey,
+          'data-placeholder': L.fieldPh, text: value || ''
+        }, opts || {}))
+      ]);
+      return el('div', { class: 'bag-header', 'data-bag-id': bag.id }, [
+        el('div', { class: 'bag-header-row' }, [
+          field('name', 'bagName', bag.name),
+          field('origin', 'bagOrigin', bag.origin)
+        ]),
+        el('div', { class: 'bag-header-row' }, [
+          field('roastDate', 'bagRoastDate', bag.roastDate),
+          field('roastLevel', 'bagRoastLevel', bag.roastLevel),
+          field('grinderModel', 'bagGrinderModel', bag.grinderModel)
+        ])
+      ]);
+    }
 
-      leftPage.appendChild(el('div', { class: 'log-date-bar' }, [
-        el('span', {
-          class: 'log-date log-editable',
-          contenteditable: 'true',
-          spellcheck: 'false',
-          'data-field': 'date',
-          'data-type': 'date',
-          text: formatLogDate(entry.date, currentLang)
-        }),
-        el('span', {
-          class: 'log-weather log-editable',
-          contenteditable: 'true',
-          'data-field': 'weather',
-          'data-placeholder': L.weatherPh,
-          text: entry.weather || ''
-        })
-      ]));
+    const BREW_FIELD_SCHEMA = [
+      { key: 'grinderSetting', labelKey: 'brewGrindSetting' },
+      { key: 'brew.method', labelKey: 'brewMethod' },
+      { key: 'brew.dripper', labelKey: 'brewDripper' },
+      { key: 'brew.waterTempC', labelKey: 'brewWaterTemp' },
+      { key: 'brew.dose', labelKey: 'brewDose' },
+      { key: 'brew.yield', labelKey: 'brewYield' },
+      { key: 'brew.totalTimeSec', labelKey: 'brewTime' },
+      { key: 'brew.pourSegments', labelKey: 'brewPours' },
+      { key: 'extraction.tds', labelKey: 'extractionTds' },
+      { key: 'extraction.ey', labelKey: 'extractionEy' }
+    ];
 
-      for (const sec of LOG_FIELD_SCHEMA) {
-        const fieldsGrid = el('div', { class: 'log-fields' });
-        for (const f of sec.fields) {
-          const path = `${sec.section}.${f.key}`;
-          const val = getPath(entry, path);
-          const isEmpty = val == null || val === '';
-          fieldsGrid.appendChild(el('div', { class: 'log-field-label', text: L[f.labelKey] }));
-
-          if (f.picker === 'level') {
-            fieldsGrid.appendChild(renderLevelTrigger(entry));
-          } else if (f.picker === 'date') {
-            fieldsGrid.appendChild(renderDateTrigger(entry));
-          } else {
-            fieldsGrid.appendChild(el('div', {
-              class: 'log-field-value log-editable' + (isEmpty ? ' is-empty' : ''),
-              contenteditable: 'true',
-              'data-field': path,
-              'data-placeholder': L.fieldPh,
-              text: isEmpty ? '' : String(val)
-            }));
-          }
-        }
-        leftPage.appendChild(el('section', { class: 'log-section' }, [
-          el('div', { class: 'log-section-title', text: L[sec.titleKey] }),
-          fieldsGrid
-        ]));
-      }
-
-      const rightPage = el('section', { class: 'log-page log-page-right' });
-
-      rightPage.appendChild(el('section', { class: 'log-section' }, [
-        el('div', { class: 'log-section-title', text: L.secFlavor }),
-        el('div', {
-          class: 'log-prose log-editable' + (entry.flavorNotes ? '' : ' is-empty'),
-          contenteditable: 'true',
-          'data-field': 'flavorNotes',
-          'data-placeholder': L.prosePh,
-          text: entry.flavorNotes || ''
-        })
-      ]));
-
-      rightPage.appendChild(el('section', { class: 'log-section' }, [
-        el('div', { class: 'log-section-title', text: L.secReflection }),
-        el('div', {
-          class: 'log-prose log-editable' + (entry.reflection ? '' : ' is-empty'),
-          contenteditable: 'true',
-          'data-field': 'reflection',
-          'data-placeholder': L.prosePh,
-          text: entry.reflection || ''
-        })
-      ]));
-
-      const rating = Math.max(0, Math.min(5, Number(entry.rating) || 0));
-      const ratingEl = el('div', { class: 'log-rating', role: 'radiogroup', 'aria-label': 'rating' });
+    function renderBrewRating(brew) {
+      const rating = Math.max(0, Math.min(5, Number(brew.rating) || 0));
+      const ratingEl = el('div', { class: 'brew-rating', role: 'radiogroup', 'aria-label': 'rating' });
       for (let i = 1; i <= 5; i++) {
         ratingEl.appendChild(el('span', {
           class: 'log-star' + (i <= rating ? '' : ' is-empty'),
-          'data-rating': String(i),
-          role: 'radio',
-          'aria-checked': i === rating ? 'true' : 'false',
-          tabindex: '0',
+          'data-rating': String(i), role: 'radio',
+          'aria-checked': i === rating ? 'true' : 'false', tabindex: '0',
           text: i <= rating ? '✦' : '✧'
         }));
       }
-      rightPage.appendChild(ratingEl);
-
-      return el('article', { class: 'log-spread', 'data-entry-id': entry.id }, [leftPage, rightPage]);
+      return ratingEl;
     }
 
-    function renderPager(entries, idx) {
+    function renderBrewCard(bag, brew, isOpen, isBest) {
       const L = logLabels();
-      const prev = el('button', {
-        class: 'log-pager-btn', type: 'button', 'aria-label': 'previous page', text: '◀'
+      const card = el('article', {
+        class: 'brew-card' + (isBest ? ' is-best' : '') + (isOpen ? ' is-open' : ''),
+        'data-bag-id': bag.id, 'data-brew-id': brew.id
       });
-      const next = el('button', {
-        class: 'log-pager-btn', type: 'button', 'aria-label': 'next page', text: '▶'
-      });
-      if (idx <= 0) prev.disabled = true;
-      if (idx >= entries.length - 1) next.disabled = true;
-      prev.addEventListener('click', () => {
-        if (idx > 0) navigate('#/log/' + entries[idx - 1].id);
-      });
-      next.addEventListener('click', () => {
-        if (idx < entries.length - 1) navigate('#/log/' + entries[idx + 1].id);
-      });
-      return el('nav', { class: 'log-pager', 'aria-label': 'page navigation' }, [
-        prev,
-        el('span', { class: 'log-pager-label', text: L.pagerLabel(idx + 1, entries.length) }),
-        next
-      ]);
-    }
 
-    function renderFooterActions(entry) {
-      const L = logLabels();
-      return el('div', { class: 'log-footer-actions' }, [
-        el('button', {
-          class: 'log-discard', type: 'button', text: L.discard,
-          onclick: () => onDiscard(entry.id)
-        })
-      ]);
-    }
+      card.appendChild(el('div', { class: 'brew-card-head' }, [
+        el('span', {
+          class: 'brew-date log-editable', contenteditable: 'true', spellcheck: 'false',
+          'data-scope': 'brew', 'data-field': 'date', 'data-type': 'date',
+          text: formatLogDate(brew.date, currentLang)
+        }),
+        el('span', {
+          class: 'brew-weather log-editable' + (brew.weather ? '' : ' is-empty'),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': 'weather',
+          'data-placeholder': L.weatherPh, text: brew.weather || ''
+        }),
+        renderBrewRating(brew)
+      ]));
 
-    // ─────────────────────────────────────────────────────────────
-    // Click-to-open pickers: shared popover infrastructure
-    // ─────────────────────────────────────────────────────────────
-    let activePopover = null;
-
-    function closeActivePopover() {
-      if (!activePopover) return;
-      const p = activePopover;
-      activePopover = null;
-      document.removeEventListener('mousedown', p.onDocDown, true);
-      document.removeEventListener('keydown', p.onKey, true);
-      window.removeEventListener('resize', p.onResize);
-      if (p.el && p.el.parentNode) {
-        p.el.classList.remove('is-open');
-        p.el.classList.add('is-closing');
-        const done = () => { if (p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el); };
-        p.el.addEventListener('transitionend', done, { once: true });
-        // Fallback in case transitionend never fires (reduced-motion path collapses it)
-        setTimeout(done, 240);
+      // Collapsed cards show a one-line summary; the open card shows the full grid.
+      if (!isOpen) {
+        const summary = BREW_FIELD_SCHEMA.slice(0, 3)
+          .map(f => getPath(brew, f.key)).filter(Boolean).join('  ·  ');
+        card.appendChild(el('div', { class: 'brew-card-summary', text: summary || L.fieldPh }));
+        card.addEventListener('click', (e) => {
+          if (e.target.closest && e.target.closest('.log-editable, .log-star')) return;
+          navigate('#/bag/' + bag.id + '/' + brew.id);
+        });
+        return card;
       }
-    }
 
-    function positionPopover(pop, triggerEl) {
-      const rect = triggerEl.getBoundingClientRect();
-      const popRect = pop.getBoundingClientRect();
-      const margin = 8;
-      const scrollX = window.scrollX || window.pageXOffset || 0;
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const viewH = window.innerHeight || document.documentElement.clientHeight;
-      const viewW = window.innerWidth || document.documentElement.clientWidth;
-
-      const spaceBelow = viewH - rect.bottom;
-      const flipUp = spaceBelow < popRect.height + margin && rect.top > popRect.height + margin;
-      pop.classList.toggle('flip-up', flipUp);
-
-      let top = flipUp
-        ? rect.top + scrollY - popRect.height - margin
-        : rect.bottom + scrollY + margin;
-      let left = rect.left + scrollX;
-      // Keep inside viewport horizontally
-      const maxLeft = scrollX + viewW - popRect.width - margin;
-      if (left > maxLeft) left = maxLeft;
-      if (left < scrollX + margin) left = scrollX + margin;
-
-      pop.style.top = top + 'px';
-      pop.style.left = left + 'px';
-    }
-
-    function openPopover(triggerEl, extraClass, contentBuilder) {
-      closeActivePopover();
-      const pop = el('div', { class: 'log-popover ' + extraClass, role: 'dialog' });
-      contentBuilder(pop);
-      document.body.appendChild(pop);
-      // Measure after insertion, then position, then trigger the entrance transition.
-      positionPopover(pop, triggerEl);
-      requestAnimationFrame(() => pop.classList.add('is-open'));
-
-      const onDocDown = (e) => {
-        if (pop.contains(e.target) || e.target === triggerEl) return;
-        closeActivePopover();
-      };
-      const onKey = (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); closeActivePopover(); }
-      };
-      const onResize = () => positionPopover(pop, triggerEl);
-
-      // Defer document listeners to the next tick so the opening click
-      // doesn't immediately get counted as "outside click".
-      setTimeout(() => {
-        if (activePopover && activePopover.el === pop) {
-          document.addEventListener('mousedown', onDocDown, true);
-          document.addEventListener('keydown', onKey, true);
-          window.addEventListener('resize', onResize);
+      const grid = el('div', { class: 'brew-fields' });
+      for (const f of BREW_FIELD_SCHEMA) {
+        const val = getPath(brew, f.key);
+        const isEmpty = val == null || val === '';
+        grid.appendChild(el('div', { class: 'brew-field-label', text: L[f.labelKey] }));
+        const value = el('div', {
+          class: 'brew-field-value log-editable' + (isEmpty ? ' is-empty' : ''),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': f.key,
+          'data-placeholder': L.fieldPh, text: isEmpty ? '' : String(val)
+        });
+        if (f.key === 'grinderSetting') {
+          // Translate button is a SIBLING (not a child) so it neither pollutes the
+          // field's textContent value nor gets wiped when the field saves on blur.
+          grid.appendChild(el('div', { class: 'brew-grind-cell' }, [
+            value,
+            el('button', { class: 'grind-translate-btn', type: 'button',
+              text: L.translateGrind, title: L.translateGrind })
+          ]));
+        } else {
+          grid.appendChild(value);
         }
-      }, 0);
+      }
+      card.appendChild(grid);
 
-      activePopover = { el: pop, triggerEl, onDocDown, onKey, onResize };
-      return pop;
-    }
+      card.appendChild(el('div', { class: 'brew-section' }, [
+        el('div', { class: 'brew-section-title', text: L.secFlavor }),
+        el('div', { class: 'brew-prose log-editable' + (brew.flavorNotes ? '' : ' is-empty'),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': 'flavorNotes',
+          'data-placeholder': L.prosePh, text: brew.flavorNotes || '' })
+      ]));
+      card.appendChild(el('div', { class: 'brew-section' }, [
+        el('div', { class: 'brew-section-title', text: L.secReflection }),
+        el('div', { class: 'brew-prose log-editable' + (brew.reflection ? '' : ' is-empty'),
+          contenteditable: 'true', 'data-scope': 'brew', 'data-field': 'reflection',
+          'data-placeholder': L.prosePh, text: brew.reflection || '' })
+      ]));
 
-    function renderLevelTrigger(entry) {
-      const L = logLabels();
-      const level = entry.beans && entry.beans.roastLevel;
-      const label = level ? L['roastLevel_' + level] : '';
-      const isEmpty = !label;
-      const btn = el('button', {
-        class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
-        type: 'button',
-        'aria-haspopup': 'listbox',
-        text: isEmpty ? L.pickerPh : label
-      });
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openLevelPopover(btn, entry);
-      });
-      return btn;
-    }
-
-    function refreshLevelTrigger(btn, entry) {
-      const L = logLabels();
-      const level = entry.beans && entry.beans.roastLevel;
-      const label = level ? L['roastLevel_' + level] : '';
-      btn.textContent = label || L.pickerPh;
-      btn.classList.toggle('is-empty', !label);
-    }
-
-    function openLevelPopover(triggerEl, entry) {
-      openPopover(triggerEl, 'log-level-picker', (pop) => {
-        const L = logLabels();
-        const current = entry.beans && entry.beans.roastLevel;
-        for (const key of ROAST_LEVELS) {
-          const selected = current === key;
-          const opt = el('button', {
-            class: 'log-level-option' + (selected ? ' is-selected' : ''),
-            type: 'button',
-            role: 'option',
-            'aria-selected': selected ? 'true' : 'false'
-          }, [
-            el('span', { class: 'log-level-option-dot' }),
-            el('span', { text: L['roastLevel_' + key] })
-          ]);
-          opt.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const { entries } = BrewLog.load();
-            const stored = entries.find(en => en.id === entry.id);
-            if (!stored) { closeActivePopover(); return; }
-            const next = stored.beans.roastLevel === key ? '' : key;
-            stored.beans.roastLevel = next;
-            entry.beans.roastLevel = next;
-            BrewLog.save(entries);
-            refreshLevelTrigger(triggerEl, entry);
-            closeActivePopover();
-          });
-          pop.appendChild(opt);
-        }
-      });
-    }
-
-    function renderDateTrigger(entry) {
-      const L = logLabels();
-      const iso = entry.beans && entry.beans.roastDate;
-      const label = iso ? formatRoastDate(iso) : '';
-      const isEmpty = !label;
-      const btn = el('button', {
-        class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
-        type: 'button',
-        'aria-haspopup': 'dialog',
-        text: isEmpty ? L.pickerPh : label
-      });
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openCalendarPopover(btn, entry);
-      });
-      return btn;
-    }
-
-    function refreshDateTrigger(btn, entry) {
-      const L = logLabels();
-      const iso = entry.beans && entry.beans.roastDate;
-      const label = iso ? formatRoastDate(iso) : '';
-      btn.textContent = label || L.pickerPh;
-      btn.classList.toggle('is-empty', !label);
+      card.appendChild(el('div', { class: 'brew-footer-actions' }, [
+        el('button', { class: 'brew-discard', type: 'button', text: L.discardBrew,
+          onclick: () => onDiscardBrew(bag.id, brew.id) })
+      ]));
+      return card;
     }
 
     function parseIsoDate(iso) {
@@ -2391,156 +2046,6 @@
       const dt = new Date(y, mo - 1, d);
       if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
       return dt;
-    }
-
-    function formatIsoDate(y, m, d) {
-      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    }
-
-    function openCalendarPopover(triggerEl, entry) {
-      const selected = parseIsoDate(entry.beans && entry.beans.roastDate);
-      const anchor = selected || new Date();
-      const state = { year: anchor.getFullYear(), month: anchor.getMonth() };
-
-      openPopover(triggerEl, 'log-calendar', (pop) => {
-        const L = logLabels();
-        const header = el('div', { class: 'log-cal-header' });
-        const prevBtn = el('button', {
-          class: 'log-cal-nav', type: 'button',
-          'aria-label': L.calendarPrev, text: '‹'
-        });
-        const nextBtn = el('button', {
-          class: 'log-cal-nav', type: 'button',
-          'aria-label': L.calendarNext, text: '›'
-        });
-        const title = el('div', { class: 'log-cal-title' });
-        header.appendChild(prevBtn);
-        header.appendChild(title);
-        header.appendChild(nextBtn);
-
-        const weekdays = el('div', { class: 'log-cal-weekdays' });
-        for (const wd of L.calendarWeekdays) {
-          weekdays.appendChild(el('div', { class: 'log-cal-wd', text: wd }));
-        }
-
-        const grid = el('div', { class: 'log-cal-grid' });
-        pop.appendChild(header);
-        pop.appendChild(weekdays);
-        pop.appendChild(grid);
-
-        prevBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (state.month === 0) { state.month = 11; state.year -= 1; }
-          else { state.month -= 1; }
-          renderGrid();
-        });
-        nextBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (state.month === 11) { state.month = 0; state.year += 1; }
-          else { state.month += 1; }
-          renderGrid();
-        });
-
-        function renderGrid() {
-          const LL = logLabels();
-          title.textContent = LL.calendarTitle(state.year, state.month + 1);
-          clearChildren(grid);
-
-          const firstDow = new Date(state.year, state.month, 1).getDay();
-          const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
-          const daysInPrev = new Date(state.year, state.month, 0).getDate();
-          const sel = parseIsoDate(entry.beans && entry.beans.roastDate);
-          const today = new Date();
-
-          for (let i = 0; i < 42; i++) {
-            let dayNum, cellYear, cellMonth, isOther = false;
-            if (i < firstDow) {
-              dayNum = daysInPrev - firstDow + 1 + i;
-              cellMonth = state.month - 1;
-              cellYear = state.year;
-              if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
-              isOther = true;
-            } else if (i >= firstDow + daysInMonth) {
-              dayNum = i - firstDow - daysInMonth + 1;
-              cellMonth = state.month + 1;
-              cellYear = state.year;
-              if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
-              isOther = true;
-            } else {
-              dayNum = i - firstDow + 1;
-              cellMonth = state.month;
-              cellYear = state.year;
-            }
-
-            const isToday = today.getFullYear() === cellYear
-                         && today.getMonth() === cellMonth
-                         && today.getDate() === dayNum;
-            const isSelected = sel
-                         && sel.getFullYear() === cellYear
-                         && sel.getMonth() === cellMonth
-                         && sel.getDate() === dayNum;
-
-            let cls = 'log-cal-day';
-            if (isOther) cls += ' is-other';
-            if (isToday) cls += ' is-today';
-            if (isSelected) cls += ' is-selected';
-
-            const cell = el('button', {
-              class: cls, type: 'button', text: String(dayNum)
-            });
-            cell.addEventListener('click', (e) => {
-              e.stopPropagation();
-              const iso = formatIsoDate(cellYear, cellMonth + 1, dayNum);
-              const { entries } = BrewLog.load();
-              const stored = entries.find(en => en.id === entry.id);
-              if (!stored) { closeActivePopover(); return; }
-              const next = stored.beans.roastDate === iso ? '' : iso;
-              stored.beans.roastDate = next;
-              entry.beans.roastDate = next;
-              BrewLog.save(entries);
-              refreshDateTrigger(triggerEl, entry);
-              closeActivePopover();
-            });
-            grid.appendChild(cell);
-          }
-        }
-
-        renderGrid();
-      });
-    }
-
-    function onNewEntry() {
-      const { entries } = BrewLog.load();
-      const entry = BrewLog.createEntry();
-      BrewLog.save([entry, ...entries]);
-      navigate('#/log/' + entry.id);
-    }
-
-    function onDiscard(id) {
-      const L = logLabels();
-      if (typeof confirm !== 'function' || !confirm(L.discardConfirm)) return;
-      const { entries } = BrewLog.load();
-      const next = entries.filter(e => e.id !== id);
-      BrewLog.save(next);
-      navigate(next.length ? '#/log/' + next[0].id : '#/log');
-    }
-
-    function onImport() {
-      const L = logLabels();
-      if (typeof prompt !== 'function') return;
-      const raw = prompt(L.importPrompt);
-      if (!raw) return;
-      let parsed;
-      try { parsed = JSON.parse(raw); } catch (_) { return; }
-      const incoming = BrewLog.extractEntries(parsed);
-      if (!incoming) return;
-      const { entries } = BrewLog.load();
-      const { entries: merged, added } = BrewLog.mergeImport(entries, incoming);
-      BrewLog.save(merged);
-      if (typeof alert === 'function') {
-        alert(added > 0 ? L.importOk(added) : L.importNone);
-      }
-      applyRoute();
     }
 
     // Write a value at a dotted path on a plain object; creates intermediate objects if missing.
@@ -2554,13 +2059,25 @@
       cur[parts[parts.length - 1]] = value;
     }
 
+    // Resolve an editable element to its (bagId, brewId|null, scope) target.
     function findEditableHost(target) {
       if (!target || !target.classList || !target.classList.contains('log-editable')) return null;
-      const article = target.closest ? target.closest('.log-spread') : null;
-      if (!article) return null;
-      const id = article.dataset ? article.dataset.entryId : null;
-      if (!id) return null;
-      return { el: target, entryId: id };
+      const scope = target.dataset ? target.dataset.scope : null;
+      if (scope === 'bag') {
+        const header = target.closest ? target.closest('.bag-header') : null;
+        const bagId = header && header.dataset ? header.dataset.bagId : null;
+        return bagId ? { el: target, scope: 'bag', bagId, brewId: null } : null;
+      }
+      const card = target.closest ? target.closest('.brew-card') : null;
+      if (!card || !card.dataset) return null;
+      return { el: target, scope: 'brew', bagId: card.dataset.bagId, brewId: card.dataset.brewId };
+    }
+
+    function findBrew(bags, host) {
+      const bag = bags.find(b => b.id === host.bagId);
+      if (!bag) return { bag: null, brew: null };
+      if (host.scope === 'bag') return { bag, brew: null };
+      return { bag, brew: bag.brews.find(b => b.id === host.brewId) || null };
     }
 
     function onEditableFocus(e) {
@@ -2568,9 +2085,9 @@
       if (!host) return;
       host.el.classList.remove('is-empty');
       if (host.el.dataset.type === 'date') {
-        const { entries } = BrewLog.load();
-        const entry = entries.find(en => en.id === host.entryId);
-        if (entry) host.el.textContent = entry.date || '';
+        const { bags } = BrewLog.loadJournal();
+        const { brew } = findBrew(bags, host);
+        if (brew) host.el.textContent = brew.date || '';
       }
     }
 
@@ -2579,78 +2096,90 @@
       if (!host) return;
       const path = host.el.dataset.field;
       if (!path) return;
-      const { entries } = BrewLog.load();
-      const entry = entries.find(en => en.id === host.entryId);
-      if (!entry) return;
+      const { bags } = BrewLog.loadJournal();
+      const { bag, brew } = findBrew(bags, host);
+      const targetObj = host.scope === 'bag' ? bag : brew;
+      if (!targetObj) return;
 
       let newValue = (host.el.textContent || '').trim();
-
       if (host.el.dataset.type === 'date') {
         const parsed = parseIsoDate(newValue);
-        if (!parsed) newValue = entry.date || '';
-        setPath(entry, path, newValue);
+        if (!parsed) newValue = (brew && brew.date) || '';
+        setPath(targetObj, path, newValue);
         host.el.textContent = formatLogDate(newValue, currentLang);
       } else {
-        setPath(entry, path, newValue);
+        setPath(targetObj, path, newValue);
         host.el.textContent = newValue;
       }
-
       host.el.classList.toggle('is-empty', newValue === '');
-      BrewLog.save(entries);
+      BrewLog.saveJournal(bags);
     }
 
     function onLogClick(e) {
+      // Inline grind-translate: jump to the converter pre-targeted at the bag's grinder.
+      const translate = e.target && e.target.closest ? e.target.closest('.grind-translate-btn') : null;
+      if (translate) {
+        e.preventDefault();
+        const header = document.querySelector('.bag-header');
+        const modelEl = header ? header.querySelector('[data-field="grinderModel"]') : null;
+        navigate('#/convert');
+        preselectConverterTarget(modelEl ? modelEl.textContent : '');
+        return;
+      }
       const star = e.target && e.target.closest ? e.target.closest('.log-star') : null;
       if (!star) return;
-      const article = star.closest('.log-spread');
-      if (!article) return;
-      const id = article.dataset.entryId;
+      const card = star.closest('.brew-card');
+      if (!card || !card.dataset) return;
+      const { bags } = BrewLog.loadJournal();
+      const bag = bags.find(b => b.id === card.dataset.bagId);
+      if (!bag) return;
+      const brew = bag.brews.find(b => b.id === card.dataset.brewId);
+      if (!brew) return;
       const rating = Number(star.dataset.rating) || 0;
-      const { entries } = BrewLog.load();
-      const entry = entries.find(en => en.id === id);
-      if (!entry) return;
-      entry.rating = entry.rating === rating ? 0 : rating;
-      BrewLog.save(entries);
+      brew.rating = brew.rating === rating ? 0 : rating;
+      BrewLog.saveJournal(bags);
       applyRoute();
+    }
+
+    // Best-effort map a free-text grinder model to a converter target select value.
+    function preselectConverterTarget(model) {
+      const m = String(model || '').toLowerCase();
+      let target = null;
+      if (m.includes('c40') || m.includes('comandante')) target = 'c40';
+      else if (m.includes('k-ultra') || m.includes('kultra') || m.includes('1zpresso')) target = 'kUltra';
+      else if (m.includes('ek43') || m.includes('mahlk')) target = 'ek43';
+      if (!target) return;
+      targetGrinder = target;
+      if (elements.targetSelect) elements.targetSelect.value = target;
+      if (typeof convert === 'function') convert();
+    }
+
+    function onDiscardBrew(bagId, brewId) {
+      const L = logLabels();
+      if (typeof confirm !== 'function' || !confirm(L.discardConfirm)) return;
+      const { bags } = BrewLog.loadJournal();
+      const bag = bags.find(b => b.id === bagId);
+      if (!bag) return;
+      bag.brews = bag.brews.filter(b => b.id !== brewId);
+      BrewLog.saveJournal(bags);
+      navigate('#/bag/' + bagId);
     }
 
     function onLogKeydown(e) {
       const t = e.target;
       if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
         if (t.isContentEditable && e.key === 'Enter' && !e.shiftKey) {
-          const path = t.dataset && t.dataset.field;
-          const isProse = t.classList && t.classList.contains('log-prose');
-          if (path && !isProse) { e.preventDefault(); t.blur(); }
+          const isProse = t.classList && t.classList.contains('brew-prose');
+          if (!isProse) { e.preventDefault(); t.blur(); }
         }
         return;
       }
-      const logView = document.getElementById('logView');
-      if (!logView || logView.hidden) return;
-
-      if (e.key === 'ArrowLeft') {
-        const prev = logView.querySelector('.log-pager-btn[aria-label="previous page"]');
-        if (prev && !prev.disabled) { e.preventDefault(); prev.click(); }
-      } else if (e.key === 'ArrowRight') {
-        const next = logView.querySelector('.log-pager-btn[aria-label="next page"]');
-        if (next && !next.disabled) { e.preventDefault(); next.click(); }
-      } else if (e.key === 'n' || e.key === 'N') {
-        e.preventDefault();
-        onNewEntry();
+      const journalView = document.getElementById('journalView');
+      if (!journalView || journalView.hidden) return;
+      if (e.key === 'n' || e.key === 'N') {
+        const shell = journalView.querySelector('.journal-shell[data-bag-id]');
+        if (shell && shell.dataset.bagId) { e.preventDefault(); onNewBrew(shell.dataset.bagId); }
       }
-    }
-
-    function onExport() {
-      const { entries } = BrewLog.load();
-      const payload = BrewLog.exportPayload(entries);
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `brew-log-${BrewLog.todayISO()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     }
 
     // Arrow bounce helper
@@ -2685,7 +2214,7 @@
 
     // '记录这次冲煮 →' link: jump to log view with a fresh blank page.
     if (elements.logLinkBtn) {
-      elements.logLinkBtn.addEventListener('click', onNewEntry);
+      elements.logLinkBtn.addEventListener('click', () => navigate('#/'));
     }
 
     // Source grinder select
@@ -2732,19 +2261,19 @@
     // View switcher (tab buttons + hashchange)
     document.querySelectorAll('.view-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        navigate(btn.dataset.view === 'log' ? '#/log' : '#/');
+        navigate(btn.dataset.view === 'convert' ? '#/convert' : '#/');
       });
     });
     if (typeof window !== 'undefined') {
       window.addEventListener('hashchange', applyRoute);
     }
 
-    // Log-view delegated handlers (survive innerHTML rerenders)
-    const logRoot = document.getElementById('logView');
-    if (logRoot) {
-      logRoot.addEventListener('focusin', onEditableFocus);
-      logRoot.addEventListener('focusout', onEditableBlur);
-      logRoot.addEventListener('click', onLogClick);
+    // Journal delegated handlers (survive re-renders)
+    const journalRoot = document.getElementById('journalView');
+    if (journalRoot) {
+      journalRoot.addEventListener('focusin', onEditableFocus);
+      journalRoot.addEventListener('focusout', onEditableBlur);
+      journalRoot.addEventListener('click', onLogClick);
     }
     document.addEventListener('keydown', onLogKeydown);
 

@@ -32,21 +32,30 @@ K-Ultra uses X.Y.Z format (rotation.number.tick), where total clicks = X×100 + 
 
 CSS custom properties in `:root` — warm earth tones with dark mode via `prefers-color-scheme: dark`. Serif headings (Noto Serif SC), muted colors, minimal shadows.
 
-### Brew Log
+### Brew Journal
 
-Hash router (`#/`, `#/log`, `#/log/<id>`) toggles between the converter and the brew journal. The journal renders a two-page spread (params on the left, prose on the right), all fields are `contenteditable` with blur-to-save.
+The app is a **Bag-centric brew journal** (the converter is a secondary page). A hash router (`parseRoute()`/`applyRoute()`) switches two top-level views — `#journalView` and `#converterView`:
 
-- **Storage**: localStorage key `grinder-brew-log-v1` holds a JSON array of entries. The `BrewLog` IIFE owns all read/write paths — components never touch `localStorage` directly.
-- **Schema** (`BrewLog.createEntry()` is the source of truth):
-  - Top-level: `id`, `schemaVersion`, `createdAt` (ISO), `date` (`YYYY-MM-DD`), `weather`, `rating` (0–5 int), `flavorNotes`, `reflection`
-  - `beans`: `name`, `origin`, `roastDate`, `roastLevel`
-  - `grinder`: `model`, `setting`
-  - `brew`: `method`, `dripper`, `waterTempC`, `dose`, `yield`, `totalTimeSec`, `pourSegments`
-  - `extraction`: `tds`, `ey`
-- **Sanitizer**: `sanitizeEntry()` drops malformed input (returns `null`) instead of throwing. Unknown fields are stripped; rating is clamped to integer 0–5.
-- **Import merge**: `mergeImport()` keys by `id`; on collision the entry with the later `createdAt` wins.
-- **`var BrewLog` is load-bearing for tests** — `vm.runInContext` only attaches `var` and function declarations to the context object. Switching to `const`/`let` would make `ctx.BrewLog` unreachable from `tests/brew-log.test.mjs`.
-- **`LOG_LABELS`** is a separate object from `i18n` — labels that need to update on language switch via `updateTexts()` belong in `i18n`; per-render log labels stay in `LOG_LABELS` and are read fresh through `logLabels()`.
+- `#/` (and legacy `#/log`, `#/log/<id>`) → **dashboard**: a grid of bag cards.
+- `#/bag/<bagId>[/<brewId>]` → **bag timeline**: editable bag identity header, the best brew pinned, remaining brews grouped by method, and an editable (open) brew card when `<brewId>` is present.
+- `#/convert` → the **converter**.
+
+`renderJournal(route)` is the entry point; it dispatches to `renderDashboard` / `renderBagView`. All fields are `contenteditable` with focusout-to-save (delegated `onEditableBlur` on `#journalView`).
+
+- **Storage** (owned entirely by the `BrewLog` IIFE — components never touch `localStorage`):
+  - `grinder-brew-journal-v2` (`STORAGE_KEY_V2`, `JOURNAL_VERSION = 2`) — the **live** store: a JSON array of Bags. Read/written via `loadJournal()` / `saveJournal()`.
+  - `grinder-brew-log-v1` (`STORAGE_KEY`, `SCHEMA_VERSION = 1`) — the **preserved v1 backup**: read once for migration, never written after.
+- **Migration (automatic + idempotent)**: on first `loadJournal()` with no v2 key, `migrateEntriesToBags()` consolidates v1 flat entries into Bags, persists v2, and leaves v1 untouched. Bag ids are deterministic — `bagIdFromKey(bagKey(name, roastDate))` — so re-running migration/import yields the same ids.
+- **Schema** (constructors are the source of truth):
+  - Bag (`createBag()`): `id`, `schemaVersion: 2`, `createdAt` (ISO), `name`, `origin`, `roastDate` (`YYYY-MM-DD`), `roastLevel`, `grinderModel`, `status` (`'active' | 'finished'`), `brews: [Brew]`
+  - Brew (`createBrew()`): `id`, `createdAt` (ISO), `date` (`YYYY-MM-DD`), `weather`, `grinderSetting`, `brew: {method, dripper, waterTempC, dose, yield, totalTimeSec, pourSegments}`, `extraction: {tds, ey}`, `rating` (0–5 int), `flavorNotes`, `reflection`
+  - **Natural identity**: a Bag is keyed by `bagKey(name, roastDate)` (trimmed, name lower-cased). Migration and import consolidate/merge by this key.
+- **Sanitizers**: `sanitizeBag()` / `sanitizeBrew()` drop malformed input (return `null`) instead of throwing — strip unknown fields, clamp rating to int 0–5, normalize roastLevel, default unknown status to `'active'`, and sanitize nested brews (dropping invalid ones). (`sanitizeEntry()` for v1 entries still exists for the migration path.)
+- **Import is shape-agnostic**: `extractBags()` accepts a v2 payload (`{schemaVersion: 2, bags}`), a raw bag array, or any v1 shape (`{schemaVersion: 1, entries}` / raw entry array — migrated to bags). `mergeJournalImport()` merges incoming bags by natural key; within a bag, brews merge by `id` with the later `createdAt` winning. `exportJournal()` wraps bags as `{schemaVersion: 2, exportedAt, bags}`.
+- **Best brew**: `bestBrew(bag)` returns the highest-rated brew (latest `createdAt` wins ties), or `null` if none are rated > 0.
+- **Converter demotion**: the converter lives at `#/convert`; the open brew card's grind-setting field has an inline "translate" button that jumps to the converter pre-targeted to the bag's grinder (`preselectConverterTarget`).
+- **`var BrewLog` is load-bearing for tests** — `vm.runInContext` only attaches `var` and function declarations to the context object. Switching to `const`/`let` would make `ctx.BrewLog` unreachable from the test files.
+- **`LOG_LABELS`** is a separate object from `i18n` — per-render journal labels stay in `LOG_LABELS` (read fresh via `logLabels()`); strings that re-label on language switch via `updateTexts()` (incl. the `tabJournal`/`tabConverter` view-switcher labels) live in `i18n`.
 - **DOM convention**: never assign to `.innerHTML`. Use `clearChildren(node)` and the `el()` helper. A pre-commit hook on this machine enforces this.
 
 ## Commands
@@ -65,7 +74,8 @@ Open `index.html` directly in a browser — no server needed.
 
 - `index.html` — the entire application
 - `tests/conversion-accuracy.test.mjs` — anchor regression, roundtrip consistency, and range-clamping tests
-- `tests/brew-log.test.mjs` — schema, sanitize, import/export, and corrupt-storage tests for the brew journal
+- `tests/brew-log.test.mjs` — v1 entry schema, sanitize, import/export, and corrupt-storage tests (the v1 layer kept for migration/back-compat)
+- `tests/journal.test.mjs` — v2 Bag/Brew constructors, natural-key + deterministic id, sanitizers, v1→v2 migration, load/save, both-shape import + merge, best-brew, and routing
 - `reference/grinder-converter-project.md` — original PRD with data specs and brew method tables; **see its 附录 (appendix) for the calibration rationale that supersedes the original ×3.75 linear coefficient**
 - `reference/c40-kultra-conversion-research.md` — 2026-06 community/source research on C40↔K-Ultra (refutes ×1.5 and ×3.2 single-coefficient formulas; confirms the brew-chart-calibrated piecewise approach is more accurate)
 - `docs/plans/` — design plans for the wabi-sabi redesign
