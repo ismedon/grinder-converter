@@ -385,3 +385,34 @@ test("mergeJournalImport still merges a re-imported blank bag by id (idempotent)
   assert.equal(res.bags.length, 1, "same-id blank bag merges, not duplicated");
   assert.equal(res.bags[0].brews.length, 2, "new brew added to the existing blank bag");
 });
+
+test("extractBags keeps a v2 bag that omits the brews key (raw array, not misread as v1)", () => {
+  const ctx = loadContext();
+  const bags = ctx.BrewLog.extractBags([
+    { id: "bag_x", name: "Ethiopia", roastDate: "2026-05-01", grinderModel: "C40" },
+  ]);
+  assert.ok(Array.isArray(bags));
+  assert.equal(bags.length, 1);
+  assert.equal(bags[0].id, "bag_x", "bag identity preserved (not stripped via v1 migration)");
+  assert.equal(bags[0].name, "Ethiopia");
+});
+
+test("extractBags keeps brews-less v2 bags from a {schemaVersion:2, bags} payload", () => {
+  const ctx = loadContext();
+  const bags = ctx.BrewLog.extractBags({
+    schemaVersion: 2,
+    bags: [{ id: "bag_y", name: "Kenya", roastDate: "2026-05-02" }],
+  });
+  assert.equal(bags.length, 1);
+  assert.equal(bags[0].id, "bag_y");
+  assert.equal(bags[0].name, "Kenya");
+});
+
+test("extractBags still migrates a raw v1-entry array (beans/grinder signature)", () => {
+  const ctx = loadContext();
+  const bags = ctx.BrewLog.extractBags([
+    { id: "e1", beans: { name: "Guji", roastDate: "2026-04-20" }, grinder: { model: "C40", setting: "20" } },
+  ]);
+  assert.equal(bags.length, 1);
+  assert.equal(bags[0].brews[0].grinderSetting, "20", "v1 entry still migrated into a bag with a brew");
+});
