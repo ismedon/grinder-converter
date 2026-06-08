@@ -1510,10 +1510,15 @@
         }
         const v2 = bagsFromParsed(parsed);
         if (v2) {
-          // A raw array of v1 entries has no `brews`; treat as v1 and migrate.
-          const looksLikeBags = v2.length === 0 || (v2[0] && Array.isArray(v2[0].brews));
-          if (looksLikeBags) return v2;
-          return migrateEntriesToBags(v2.map(sanitizeEntry).filter(Boolean));
+          // Distinguish v1 entries from v2 bags by the v1 signature (nested
+          // `beans`/`grinder` objects), not by the presence of `brews` — a v2
+          // bag that omits its (empty) brews array must not be misread as v1.
+          const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
+          const isV1Entry = (e) => isObj(e) && (isObj(e.beans) || isObj(e.grinder));
+          if (v2.length > 0 && v2.every(isV1Entry)) {
+            return migrateEntriesToBags(v2.map(sanitizeEntry).filter(Boolean));
+          }
+          return v2;
         }
         const entries = extractEntries(parsed);
         if (entries) return migrateEntriesToBags(entries.map(sanitizeEntry).filter(Boolean));
@@ -2112,6 +2117,12 @@
         setPath(targetObj, path, newValue);
         host.el.textContent = formatLogDate(newValue, currentLang);
       } else {
+        // A bag's roastDate is half of its natural identity key, so reject
+        // free-text that isn't a valid ISO date — revert to the stored value
+        // rather than letting garbage split the bag on a later import/merge.
+        if (host.scope === 'bag' && path === 'roastDate' && newValue && !parseIsoDate(newValue)) {
+          newValue = getPath(targetObj, path) || '';
+        }
         setPath(targetObj, path, newValue);
         host.el.textContent = newValue;
       }
