@@ -184,55 +184,6 @@
       display: none;
     }
 
-    /* ─── Brew Log view ───────────────────────────────────────── */
-    .log-shell {
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    .log-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-
-    .log-toolbar-group {
-      display: flex;
-      gap: 8px;
-    }
-
-    .log-tool-btn {
-      padding: 8px 14px;
-      border: 1px solid var(--border-color);
-      background: var(--card-bg);
-      color: var(--text-secondary);
-      font-family: inherit;
-      font-size: 0.8125rem;
-      letter-spacing: 0.08em;
-      border-radius: 3px;
-      cursor: pointer;
-      min-height: 36px;
-      transition: border-color 0.2s, color 0.2s;
-    }
-
-    .log-tool-btn:hover {
-      border-color: var(--accent-color);
-      color: var(--text-primary);
-    }
-
-    .log-tool-btn.primary {
-      color: var(--text-primary);
-      border-color: var(--text-primary);
-    }
-
-    .log-tool-btn:focus-visible {
-      outline: 2px solid var(--accent-color);
-      outline-offset: 2px;
-    }
-
     /* ── Journal: dashboard + bag list ───────────────────────── */
     .journal-shell { display: flex; flex-direction: column; gap: 1.25rem; }
     .journal-toolbar { display: flex; justify-content: space-between; gap: 0.75rem; }
@@ -1633,9 +1584,9 @@
 
     // ─────────────────────────────────────────────────────────────
     // Router: hash-based view switching
-    //   #/            → converter  (default)
-    //   #/log         → brew log home
-    //   #/log/<id>    → specific entry
+    //   #/                     → dashboard (default; legacy #/log[/<id>] too)
+    //   #/bag/<id>[/<brewId>]  → bag timeline + (optional) open brew editor
+    //   #/convert              → converter
     // ─────────────────────────────────────────────────────────────
     function parseRoute(hash) {
       const h = (hash || '').replace(/^#/, '').trim();
