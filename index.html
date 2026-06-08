@@ -971,6 +971,7 @@
       notationExample: document.getElementById('notationExample'),
       disclaimer: document.getElementById('disclaimer'),
       directionArrow: document.getElementById('directionArrow'),
+      viewBtnJournal: document.getElementById('viewBtnJournal'),
       viewBtnConverter: document.getElementById('viewBtnConverter'),
       logLinkBtn: document.getElementById('logLinkBtn')
     };
@@ -1122,6 +1123,7 @@
       elements.resultUnit.textContent = t.units[targetGrinder];
 
       // View-switcher tabs + log-link button
+      if (elements.viewBtnJournal) elements.viewBtnJournal.textContent = t.tabJournal;
       if (elements.viewBtnConverter) elements.viewBtnConverter.textContent = t.tabConverter;
       if (elements.logLinkBtn) elements.logLinkBtn.textContent = t.recordThisBrew;
     }
