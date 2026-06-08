@@ -51,6 +51,8 @@
       --success-color: #c45c3c;
       --warning-color: #7d6a38;
       --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+      /* handwriting fonts unused after the journal reposition; removed together
+         with the Google Fonts <link> in the PWA-hardening plan (ADR 0003) */
       --font-hand: "Caveat", "Ma Shan Zheng", "Kaiti SC", "KaiTi", serif;
       --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -297,534 +299,6 @@
     .brew-discard { background: none; border: none; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; }
     .grind-translate-btn { font-size: 0.72rem; cursor: pointer; white-space: nowrap;
       border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--accent-color); padding: 0 0.4rem; }
-
-    /* Two-page spread — desktop */
-    @keyframes logPageMount {
-      from { opacity: 0; transform: translateX(6px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-
-    .log-spread {
-      background: var(--card-bg);
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.045'/%3E%3C/svg%3E");
-      border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
-      padding: 0;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      min-height: 560px;
-      position: relative;
-      animation: logPageMount 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    /* Corner dot decoration */
-    .log-spread::after {
-      content: "· · · · ·";
-      position: absolute;
-      bottom: 14px;
-      right: 24px;
-      color: var(--text-secondary);
-      opacity: 0.35;
-      letter-spacing: 0.2em;
-      font-size: 0.75rem;
-      pointer-events: none;
-    }
-
-    .log-spread::before {
-      /* gutter: a subtle double-line down the middle like a stitched notebook */
-      content: "";
-      position: absolute;
-      top: 24px;
-      bottom: 24px;
-      left: 50%;
-      width: 1px;
-      background: var(--border-color);
-      box-shadow: -3px 0 0 -2px var(--border-color), 3px 0 0 -2px var(--border-color);
-      pointer-events: none;
-    }
-
-    .log-page {
-      padding: 40px 36px;
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
-    }
-
-    .log-page-left {
-      border-right: none;
-    }
-
-    .log-date-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 16px;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 14px;
-      font-family: var(--font-serif);
-    }
-
-    .log-date {
-      font-size: 1.0625rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      color: var(--text-primary);
-      min-width: 1em;
-    }
-
-    .log-weather {
-      font-family: var(--font-hand);
-      font-size: 1.125rem;
-      color: var(--text-secondary);
-      min-width: 2em;
-      text-align: right;
-    }
-
-    .log-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .log-section-title {
-      font-family: var(--font-serif);
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      letter-spacing: 0.18em;
-    }
-
-    .log-fields {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 6px 14px;
-      font-size: 0.9375rem;
-    }
-
-    .log-field-label {
-      color: var(--text-secondary);
-      font-size: 0.8125rem;
-      letter-spacing: 0.06em;
-      padding-top: 3px;
-      white-space: nowrap;
-    }
-
-    .log-field-value {
-      color: var(--text-primary);
-      font-family: var(--font-hand);
-      font-size: 1.1875rem;
-      min-height: 1.5em;
-      line-height: 1.4;
-      padding: 2px 4px;
-      border-radius: 2px;
-      border-bottom: 1px dotted transparent;
-      transition: border-color 0.2s;
-    }
-
-    .log-field-value:empty::before,
-    .log-field-value.is-empty::before {
-      content: attr(data-placeholder);
-      color: var(--text-secondary);
-      opacity: 0.45;
-      font-style: italic;
-    }
-
-    .log-editable {
-      outline: none;
-    }
-
-    .log-field-value.log-editable:focus,
-    .log-field-value.log-editable:hover {
-      border-bottom-color: var(--border-color);
-    }
-
-    .log-field-value.log-editable:focus {
-      border-bottom-color: var(--accent-color);
-      background: rgba(107, 124, 94, 0.04);
-    }
-
-    .log-prose.log-editable:focus {
-      background: rgba(107, 124, 94, 0.04);
-      box-shadow: inset 0 -1px 0 var(--accent-color);
-    }
-
-    .log-date.log-editable:focus,
-    .log-weather.log-editable:focus {
-      background: rgba(107, 124, 94, 0.04);
-      border-radius: 2px;
-    }
-
-    .log-prose {
-      min-height: 110px;
-      line-height: 1.7;
-      font-family: var(--font-hand);
-      font-size: 1.25rem;
-      color: var(--text-primary);
-      padding: 6px 8px;
-      border-radius: 2px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      background-image: linear-gradient(to bottom,
-        transparent calc(1.7em - 1px),
-        var(--border-color) calc(1.7em - 1px),
-        var(--border-color) 1.7em,
-        transparent 1.7em);
-      background-size: 100% 1.7em;
-      background-position: 0 0.15em;
-      background-repeat: repeat-y;
-    }
-
-    .log-prose:empty::before,
-    .log-prose.is-empty::before {
-      content: attr(data-placeholder);
-      color: var(--text-secondary);
-      opacity: 0.45;
-      font-style: italic;
-    }
-
-    .log-rating {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      margin-top: auto;
-      padding-top: 20px;
-      font-size: 1.25rem;
-      color: var(--accent-color);
-      letter-spacing: 0.2em;
-      user-select: none;
-    }
-
-    .log-star {
-      cursor: pointer;
-      line-height: 1;
-      padding: 2px;
-      transition: transform 0.15s, color 0.15s;
-    }
-
-    .log-star:hover {
-      transform: scale(1.15);
-    }
-
-    .log-star.is-empty {
-      color: var(--text-secondary);
-      opacity: 0.4;
-    }
-
-    .log-pager {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 16px;
-      margin-top: 24px;
-      font-family: var(--font-serif);
-      color: var(--text-secondary);
-    }
-
-    .log-pager-btn {
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 1.125rem;
-      color: var(--text-secondary);
-      padding: 8px 12px;
-      min-width: 44px;
-      min-height: 44px;
-      border-radius: 3px;
-      transition: color 0.2s;
-    }
-
-    .log-pager-btn:hover:not(:disabled) {
-      color: var(--text-primary);
-    }
-
-    .log-pager-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    .log-pager-btn:focus-visible {
-      outline: 2px solid var(--accent-color);
-      outline-offset: 2px;
-    }
-
-    .log-pager-label {
-      font-size: 0.9375rem;
-      letter-spacing: 0.08em;
-      min-width: 80px;
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .log-footer-actions {
-      display: flex;
-      justify-content: center;
-      margin-top: 18px;
-    }
-
-    .log-discard {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-family: inherit;
-      font-size: 0.75rem;
-      letter-spacing: 0.12em;
-      cursor: pointer;
-      opacity: 0.55;
-      padding: 8px 12px;
-      transition: opacity 0.2s, color 0.2s;
-    }
-
-    .log-discard:hover {
-      opacity: 1;
-      color: var(--success-color);
-    }
-
-    /* Empty state */
-    .log-empty {
-      text-align: center;
-      padding: 80px 24px;
-      color: var(--text-secondary);
-      background: var(--card-bg);
-      border-radius: 4px;
-    }
-
-    .log-empty-msg {
-      font-family: var(--font-serif);
-      font-size: 1.125rem;
-      letter-spacing: 0.14em;
-      margin-bottom: 24px;
-      opacity: 0.7;
-    }
-
-    .log-corrupt-banner {
-      background: rgba(184, 134, 11, 0.1);
-      border-left: 2px solid var(--warning-color);
-      padding: 10px 14px;
-      font-size: 0.8125rem;
-      color: var(--warning-color);
-      margin-bottom: 20px;
-      border-radius: 0 3px 3px 0;
-    }
-
-    /* Click-to-open pickers (roast date calendar + roast level options) */
-    .log-field-trigger {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: transparent;
-      border: 0;
-      border-bottom: 1px dotted transparent;
-      padding: 2px 4px;
-      border-radius: 2px;
-      font-family: var(--font-hand);
-      font-size: 1.1875rem;
-      line-height: 1.4;
-      min-height: 1.5em;
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: border-bottom-color 180ms var(--ease-out-expo),
-                  color 180ms var(--ease-out-expo);
-    }
-    .log-field-trigger:hover {
-      border-bottom-color: var(--accent-color);
-    }
-    .log-field-trigger:focus-visible {
-      outline: none;
-      border-bottom-color: var(--accent-color);
-    }
-    .log-field-trigger.is-empty {
-      color: var(--text-secondary);
-    }
-
-    .log-popover {
-      position: absolute;
-      z-index: 100;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(45, 42, 38, 0.14),
-                  0 1px 3px rgba(45, 42, 38, 0.08);
-      opacity: 0;
-      transform: translateY(-4px) scale(0.97);
-      transform-origin: top center;
-      transition: opacity 220ms var(--ease-out-expo),
-                  transform 220ms var(--ease-out-expo);
-      will-change: opacity, transform;
-    }
-    .log-popover.flip-up {
-      transform-origin: bottom center;
-      transform: translateY(4px) scale(0.97);
-    }
-    .log-popover.is-open {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-    .log-popover.is-closing {
-      opacity: 0;
-      transform: translateY(-2px) scale(0.98);
-      transition-duration: 160ms;
-    }
-    .log-popover.flip-up.is-closing {
-      transform: translateY(2px) scale(0.98);
-    }
-
-    .log-level-picker {
-      padding: 6px;
-      min-width: 144px;
-    }
-    .log-level-option {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 9px 12px;
-      border: 0;
-      background: transparent;
-      border-radius: 6px;
-      cursor: pointer;
-      font: inherit;
-      font-family: var(--font-serif);
-      font-size: 0.875rem;
-      letter-spacing: 0.02em;
-      color: var(--text-primary);
-      text-align: left;
-      transition: background-color 140ms var(--ease-out-expo),
-                  color 140ms var(--ease-out-expo);
-    }
-    .log-level-option:hover {
-      background: rgba(107, 124, 94, 0.08);
-    }
-    .log-level-option:focus-visible {
-      outline: none;
-      background: rgba(107, 124, 94, 0.12);
-    }
-    .log-level-option-dot {
-      flex: 0 0 auto;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: transparent;
-      transition: background-color 140ms var(--ease-out-expo);
-    }
-    .log-level-option.is-selected {
-      color: var(--accent-color);
-    }
-    .log-level-option.is-selected .log-level-option-dot {
-      background: var(--accent-color);
-    }
-
-    .log-calendar {
-      width: 252px;
-      padding: 14px;
-    }
-    .log-cal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .log-cal-title {
-      font-family: var(--font-serif);
-      font-size: 0.875rem;
-      letter-spacing: 0.06em;
-      color: var(--text-primary);
-    }
-    .log-cal-nav {
-      width: 28px;
-      height: 28px;
-      border: 0;
-      background: transparent;
-      border-radius: 6px;
-      cursor: pointer;
-      color: var(--text-secondary);
-      font-size: 14px;
-      line-height: 1;
-      transition: background-color 140ms var(--ease-out-expo),
-                  color 140ms var(--ease-out-expo);
-    }
-    .log-cal-nav:hover {
-      background: rgba(107, 124, 94, 0.08);
-      color: var(--text-primary);
-    }
-    .log-cal-nav:focus-visible {
-      outline: none;
-      background: rgba(107, 124, 94, 0.12);
-      color: var(--text-primary);
-    }
-    .log-cal-weekdays,
-    .log-cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-    }
-    .log-cal-wd {
-      text-align: center;
-      font-size: 0.6875rem;
-      color: var(--text-secondary);
-      letter-spacing: 0.08em;
-      padding: 4px 0;
-    }
-    .log-cal-grid {
-      margin-top: 4px;
-    }
-    .log-cal-day {
-      width: 32px;
-      height: 32px;
-      margin: 0 auto;
-      border: 0;
-      background: transparent;
-      border-radius: 50%;
-      cursor: pointer;
-      font-family: var(--font-serif);
-      font-size: 0.8125rem;
-      color: var(--text-primary);
-      transition: background-color 140ms var(--ease-out-expo),
-                  color 140ms var(--ease-out-expo),
-                  transform 80ms var(--ease-out-expo);
-    }
-    .log-cal-day:hover {
-      background: rgba(107, 124, 94, 0.10);
-    }
-    .log-cal-day:active {
-      transform: scale(0.92);
-    }
-    .log-cal-day:focus-visible {
-      outline: none;
-      background: rgba(107, 124, 94, 0.14);
-    }
-    .log-cal-day.is-other {
-      opacity: 0.28;
-    }
-    .log-cal-day.is-today {
-      box-shadow: inset 0 0 0 1px var(--accent-color);
-    }
-    .log-cal-day.is-selected {
-      background: var(--accent-color);
-      color: #faf8f4;
-    }
-    .log-cal-day.is-selected.is-today {
-      box-shadow: none;
-    }
-
-    @media (max-width: 899px) {
-      .log-spread {
-        grid-template-columns: 1fr;
-        min-height: auto;
-      }
-
-      .log-spread::before {
-        display: none;
-      }
-
-      .log-page {
-        padding: 32px 24px;
-      }
-
-      .log-page-left {
-        border-bottom: 1px solid var(--border-color);
-      }
-    }
 
     .header h1 {
       font-family: var(--font-serif);
@@ -1200,17 +674,6 @@
         --warning-color: #b8a060;
       }
 
-      .log-spread {
-        background-color: #2b2620;
-      }
-
-      .log-field-value.log-editable:focus,
-      .log-prose.log-editable:focus,
-      .log-date.log-editable:focus,
-      .log-weather.log-editable:focus {
-        background: rgba(138, 158, 122, 0.08);
-      }
-
       .grinder-select {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9287' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
       }
@@ -1413,7 +876,6 @@
         resultRegion: "转换结果",
         tabJournal: "手记",
         tabConverter: "换算",
-        tabLog: "日志",
         recordThisBrew: "记录这次冲煮 →",
         grinders: {
           c40: "Comandante C40",
@@ -1456,7 +918,6 @@
         resultRegion: "Conversion result",
         tabJournal: "Journal",
         tabConverter: "Converter",
-        tabLog: "Journal",
         recordThisBrew: "Record this brew →",
         grinders: {
           c40: "Comandante C40",
@@ -1511,7 +972,6 @@
       disclaimer: document.getElementById('disclaimer'),
       directionArrow: document.getElementById('directionArrow'),
       viewBtnConverter: document.getElementById('viewBtnConverter'),
-      viewBtnLog: document.getElementById('viewBtnLog'),
       logLinkBtn: document.getElementById('logLinkBtn')
     };
 
@@ -1663,7 +1123,6 @@
 
       // View-switcher tabs + log-link button
       if (elements.viewBtnConverter) elements.viewBtnConverter.textContent = t.tabConverter;
-      if (elements.viewBtnLog) elements.viewBtnLog.textContent = t.tabLog;
       if (elements.logLinkBtn) elements.logLinkBtn.textContent = t.recordThisBrew;
     }
 
@@ -2194,7 +1653,6 @@
     }
 
     function applyRoute() {
-      if (typeof closeActivePopover === 'function') closeActivePopover();
       const route = parseRoute(typeof location !== 'undefined' ? location.hash : '');
       const journalView = document.getElementById('journalView');
       const converterView = document.getElementById('converterView');
@@ -2215,50 +1673,10 @@
     // ─────────────────────────────────────────────────────────────
     // Brew Log view rendering
     // ─────────────────────────────────────────────────────────────
-    const LOG_FIELD_SCHEMA = [
-      {
-        section: 'beans', titleKey: 'secBeans',
-        fields: [
-          { key: 'name', labelKey: 'beansName' },
-          { key: 'origin', labelKey: 'beansOrigin' },
-          { key: 'roastDate', labelKey: 'beansRoastDate', picker: 'date' },
-          { key: 'roastLevel', labelKey: 'beansRoastLevel', picker: 'level' }
-        ]
-      },
-      {
-        section: 'grinder', titleKey: 'secGrinder',
-        fields: [
-          { key: 'model', labelKey: 'grinderModel' },
-          { key: 'setting', labelKey: 'grinderSetting' }
-        ]
-      },
-      {
-        section: 'brew', titleKey: 'secBrew',
-        fields: [
-          { key: 'method', labelKey: 'brewMethod' },
-          { key: 'dripper', labelKey: 'brewDripper' },
-          { key: 'waterTempC', labelKey: 'brewWaterTemp' },
-          { key: 'dose', labelKey: 'brewDose' },
-          { key: 'yield', labelKey: 'brewYield' },
-          { key: 'totalTimeSec', labelKey: 'brewTime' },
-          { key: 'pourSegments', labelKey: 'brewPours' }
-        ]
-      },
-      {
-        section: 'extraction', titleKey: 'secExtraction',
-        fields: [
-          { key: 'tds', labelKey: 'extractionTds' },
-          { key: 'ey', labelKey: 'extractionEy' }
-        ]
-      }
-    ];
-
     // Short provisional labels (Chinese first; full i18n lands in stage 6).
     const LOG_LABELS = {
       zh: {
-        tabConverter: '换算', tabLog: '日志',
-        newEntry: '+ 新建', importBtn: '导入', exportBtn: '导出',
-        empty: '— 还是空白的 —', newFirst: '+ 新建一篇',
+        importBtn: '导入', exportBtn: '导出',
         newBag: '+ 新建', newFirstBag: '+ 记第一袋豆子',
         emptyBags: '— 还没有豆子 —', untitledBag: '未命名',
         backToBags: '← 返回', newBrew: '+ 记一杯', newFirstBrew: '+ 记第一杯',
@@ -2269,35 +1687,20 @@
         bagRoastLevel: '烘焙度', bagGrinderModel: '磨豆机',
         brewGrindSetting: '刻度', translateGrind: '换算 ⇄',
         discardBrew: '丢弃这一杯',
-        discard: '丢弃此页',
         discardConfirm: '确定丢弃这一页？此操作不可撤销。',
         corrupt: '读取到损坏的日志数据，已忽略无法解析的记录。',
         importPrompt: '粘贴日志 JSON（或取消）',
         importOk: (n) => `导入 ${n} 条`,
         importNone: '没有新增记录',
         weatherPh: '天气',
-        secBeans: '豆子', secGrinder: '磨豆机', secBrew: '冲煮', secExtraction: '萃取',
         secFlavor: '风味', secReflection: '复盘',
-        beansName: '名称', beansOrigin: '产地', beansRoastDate: '烘焙日期', beansRoastLevel: '烘焙度',
-        grinderModel: '机型', grinderSetting: '刻度',
         brewMethod: '方式', brewDripper: '滤杯', brewWaterTemp: '水温 °C', brewDose: '粉量 g',
         brewYield: '出液 g', brewTime: '总时间 s', brewPours: '注水',
         extractionTds: 'TDS %', extractionEy: '萃取率 %',
-        fieldPh: '⋯⋯', prosePh: '写点什么…',
-        pickerPh: '点击选择',
-        roastLevel_veryLight: '超浅烘',
-        roastLevel_light:     '浅烘',
-        roastLevel_medium:    '中烘',
-        roastLevel_dark:      '深烘',
-        calendarPrev: '上个月', calendarNext: '下个月',
-        calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
-        calendarTitle: (y, m) => `${y} 年 ${m} 月`,
-        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+        fieldPh: '⋯⋯', prosePh: '写点什么…'
       },
       en: {
-        tabConverter: 'Converter', tabLog: 'Journal',
-        newEntry: '+ New', importBtn: 'Import', exportBtn: 'Export',
-        empty: '— still blank —', newFirst: '+ Start a page',
+        importBtn: 'Import', exportBtn: 'Export',
         newBag: '+ New', newFirstBag: '+ Add your first bag',
         emptyBags: '— no bags yet —', untitledBag: 'Untitled',
         backToBags: '← Back', newBrew: '+ New brew', newFirstBrew: '+ Log your first brew',
@@ -2308,34 +1711,17 @@
         bagRoastLevel: 'roast', bagGrinderModel: 'grinder',
         brewGrindSetting: 'grind', translateGrind: 'convert ⇄',
         discardBrew: 'discard this brew',
-        discard: 'discard this page',
         discardConfirm: 'Discard this page? This cannot be undone.',
         corrupt: 'Some log entries were unreadable and have been skipped.',
         importPrompt: 'Paste journal JSON (or cancel)',
         importOk: (n) => `imported ${n}`,
         importNone: 'nothing new to import',
         weatherPh: 'weather',
-        secBeans: 'Beans', secGrinder: 'Grinder', secBrew: 'Brew', secExtraction: 'Extraction',
         secFlavor: 'Flavor', secReflection: 'Reflection',
-        beansName: 'name', beansOrigin: 'origin', beansRoastDate: 'roast date', beansRoastLevel: 'roast',
-        grinderModel: 'model', grinderSetting: 'setting',
         brewMethod: 'method', brewDripper: 'dripper', brewWaterTemp: 'water °C', brewDose: 'dose g',
         brewYield: 'yield g', brewTime: 'time s', brewPours: 'pours',
         extractionTds: 'TDS %', extractionEy: 'EY %',
-        fieldPh: '⋯⋯', prosePh: 'write something…',
-        pickerPh: 'Tap to choose',
-        roastLevel_veryLight: 'Extra light',
-        roastLevel_light:     'Light',
-        roastLevel_medium:    'Medium',
-        roastLevel_dark:      'Dark',
-        calendarPrev: 'Previous month', calendarNext: 'Next month',
-        calendarWeekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-        calendarTitle: (y, m) => {
-          const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'];
-          return `${months[m - 1]} ${y}`;
-        },
-        pagerLabel: (cur, total) => `p.${cur} / ${total}`
+        fieldPh: '⋯⋯', prosePh: 'write something…'
       }
     };
 
@@ -2689,170 +2075,6 @@
       return card;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Click-to-open pickers: shared popover infrastructure
-    // ─────────────────────────────────────────────────────────────
-    let activePopover = null;
-
-    function closeActivePopover() {
-      if (!activePopover) return;
-      const p = activePopover;
-      activePopover = null;
-      document.removeEventListener('mousedown', p.onDocDown, true);
-      document.removeEventListener('keydown', p.onKey, true);
-      window.removeEventListener('resize', p.onResize);
-      if (p.el && p.el.parentNode) {
-        p.el.classList.remove('is-open');
-        p.el.classList.add('is-closing');
-        const done = () => { if (p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el); };
-        p.el.addEventListener('transitionend', done, { once: true });
-        // Fallback in case transitionend never fires (reduced-motion path collapses it)
-        setTimeout(done, 240);
-      }
-    }
-
-    function positionPopover(pop, triggerEl) {
-      const rect = triggerEl.getBoundingClientRect();
-      const popRect = pop.getBoundingClientRect();
-      const margin = 8;
-      const scrollX = window.scrollX || window.pageXOffset || 0;
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const viewH = window.innerHeight || document.documentElement.clientHeight;
-      const viewW = window.innerWidth || document.documentElement.clientWidth;
-
-      const spaceBelow = viewH - rect.bottom;
-      const flipUp = spaceBelow < popRect.height + margin && rect.top > popRect.height + margin;
-      pop.classList.toggle('flip-up', flipUp);
-
-      let top = flipUp
-        ? rect.top + scrollY - popRect.height - margin
-        : rect.bottom + scrollY + margin;
-      let left = rect.left + scrollX;
-      // Keep inside viewport horizontally
-      const maxLeft = scrollX + viewW - popRect.width - margin;
-      if (left > maxLeft) left = maxLeft;
-      if (left < scrollX + margin) left = scrollX + margin;
-
-      pop.style.top = top + 'px';
-      pop.style.left = left + 'px';
-    }
-
-    function openPopover(triggerEl, extraClass, contentBuilder) {
-      closeActivePopover();
-      const pop = el('div', { class: 'log-popover ' + extraClass, role: 'dialog' });
-      contentBuilder(pop);
-      document.body.appendChild(pop);
-      // Measure after insertion, then position, then trigger the entrance transition.
-      positionPopover(pop, triggerEl);
-      requestAnimationFrame(() => pop.classList.add('is-open'));
-
-      const onDocDown = (e) => {
-        if (pop.contains(e.target) || e.target === triggerEl) return;
-        closeActivePopover();
-      };
-      const onKey = (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); closeActivePopover(); }
-      };
-      const onResize = () => positionPopover(pop, triggerEl);
-
-      // Defer document listeners to the next tick so the opening click
-      // doesn't immediately get counted as "outside click".
-      setTimeout(() => {
-        if (activePopover && activePopover.el === pop) {
-          document.addEventListener('mousedown', onDocDown, true);
-          document.addEventListener('keydown', onKey, true);
-          window.addEventListener('resize', onResize);
-        }
-      }, 0);
-
-      activePopover = { el: pop, triggerEl, onDocDown, onKey, onResize };
-      return pop;
-    }
-
-    function renderLevelTrigger(entry) {
-      const L = logLabels();
-      const level = entry.beans && entry.beans.roastLevel;
-      const label = level ? L['roastLevel_' + level] : '';
-      const isEmpty = !label;
-      const btn = el('button', {
-        class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
-        type: 'button',
-        'aria-haspopup': 'listbox',
-        text: isEmpty ? L.pickerPh : label
-      });
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openLevelPopover(btn, entry);
-      });
-      return btn;
-    }
-
-    function refreshLevelTrigger(btn, entry) {
-      const L = logLabels();
-      const level = entry.beans && entry.beans.roastLevel;
-      const label = level ? L['roastLevel_' + level] : '';
-      btn.textContent = label || L.pickerPh;
-      btn.classList.toggle('is-empty', !label);
-    }
-
-    function openLevelPopover(triggerEl, entry) {
-      openPopover(triggerEl, 'log-level-picker', (pop) => {
-        const L = logLabels();
-        const current = entry.beans && entry.beans.roastLevel;
-        for (const key of ROAST_LEVELS) {
-          const selected = current === key;
-          const opt = el('button', {
-            class: 'log-level-option' + (selected ? ' is-selected' : ''),
-            type: 'button',
-            role: 'option',
-            'aria-selected': selected ? 'true' : 'false'
-          }, [
-            el('span', { class: 'log-level-option-dot' }),
-            el('span', { text: L['roastLevel_' + key] })
-          ]);
-          opt.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const { entries } = BrewLog.load();
-            const stored = entries.find(en => en.id === entry.id);
-            if (!stored) { closeActivePopover(); return; }
-            const next = stored.beans.roastLevel === key ? '' : key;
-            stored.beans.roastLevel = next;
-            entry.beans.roastLevel = next;
-            BrewLog.save(entries);
-            refreshLevelTrigger(triggerEl, entry);
-            closeActivePopover();
-          });
-          pop.appendChild(opt);
-        }
-      });
-    }
-
-    function renderDateTrigger(entry) {
-      const L = logLabels();
-      const iso = entry.beans && entry.beans.roastDate;
-      const label = iso ? formatRoastDate(iso) : '';
-      const isEmpty = !label;
-      const btn = el('button', {
-        class: 'log-field-trigger' + (isEmpty ? ' is-empty' : ''),
-        type: 'button',
-        'aria-haspopup': 'dialog',
-        text: isEmpty ? L.pickerPh : label
-      });
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openCalendarPopover(btn, entry);
-      });
-      return btn;
-    }
-
-    function refreshDateTrigger(btn, entry) {
-      const L = logLabels();
-      const iso = entry.beans && entry.beans.roastDate;
-      const label = iso ? formatRoastDate(iso) : '';
-      btn.textContent = label || L.pickerPh;
-      btn.classList.toggle('is-empty', !label);
-    }
-
     function parseIsoDate(iso) {
       if (typeof iso !== 'string') return null;
       const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -2861,156 +2083,6 @@
       const dt = new Date(y, mo - 1, d);
       if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
       return dt;
-    }
-
-    function formatIsoDate(y, m, d) {
-      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    }
-
-    function openCalendarPopover(triggerEl, entry) {
-      const selected = parseIsoDate(entry.beans && entry.beans.roastDate);
-      const anchor = selected || new Date();
-      const state = { year: anchor.getFullYear(), month: anchor.getMonth() };
-
-      openPopover(triggerEl, 'log-calendar', (pop) => {
-        const L = logLabels();
-        const header = el('div', { class: 'log-cal-header' });
-        const prevBtn = el('button', {
-          class: 'log-cal-nav', type: 'button',
-          'aria-label': L.calendarPrev, text: '‹'
-        });
-        const nextBtn = el('button', {
-          class: 'log-cal-nav', type: 'button',
-          'aria-label': L.calendarNext, text: '›'
-        });
-        const title = el('div', { class: 'log-cal-title' });
-        header.appendChild(prevBtn);
-        header.appendChild(title);
-        header.appendChild(nextBtn);
-
-        const weekdays = el('div', { class: 'log-cal-weekdays' });
-        for (const wd of L.calendarWeekdays) {
-          weekdays.appendChild(el('div', { class: 'log-cal-wd', text: wd }));
-        }
-
-        const grid = el('div', { class: 'log-cal-grid' });
-        pop.appendChild(header);
-        pop.appendChild(weekdays);
-        pop.appendChild(grid);
-
-        prevBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (state.month === 0) { state.month = 11; state.year -= 1; }
-          else { state.month -= 1; }
-          renderGrid();
-        });
-        nextBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (state.month === 11) { state.month = 0; state.year += 1; }
-          else { state.month += 1; }
-          renderGrid();
-        });
-
-        function renderGrid() {
-          const LL = logLabels();
-          title.textContent = LL.calendarTitle(state.year, state.month + 1);
-          clearChildren(grid);
-
-          const firstDow = new Date(state.year, state.month, 1).getDay();
-          const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
-          const daysInPrev = new Date(state.year, state.month, 0).getDate();
-          const sel = parseIsoDate(entry.beans && entry.beans.roastDate);
-          const today = new Date();
-
-          for (let i = 0; i < 42; i++) {
-            let dayNum, cellYear, cellMonth, isOther = false;
-            if (i < firstDow) {
-              dayNum = daysInPrev - firstDow + 1 + i;
-              cellMonth = state.month - 1;
-              cellYear = state.year;
-              if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
-              isOther = true;
-            } else if (i >= firstDow + daysInMonth) {
-              dayNum = i - firstDow - daysInMonth + 1;
-              cellMonth = state.month + 1;
-              cellYear = state.year;
-              if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
-              isOther = true;
-            } else {
-              dayNum = i - firstDow + 1;
-              cellMonth = state.month;
-              cellYear = state.year;
-            }
-
-            const isToday = today.getFullYear() === cellYear
-                         && today.getMonth() === cellMonth
-                         && today.getDate() === dayNum;
-            const isSelected = sel
-                         && sel.getFullYear() === cellYear
-                         && sel.getMonth() === cellMonth
-                         && sel.getDate() === dayNum;
-
-            let cls = 'log-cal-day';
-            if (isOther) cls += ' is-other';
-            if (isToday) cls += ' is-today';
-            if (isSelected) cls += ' is-selected';
-
-            const cell = el('button', {
-              class: cls, type: 'button', text: String(dayNum)
-            });
-            cell.addEventListener('click', (e) => {
-              e.stopPropagation();
-              const iso = formatIsoDate(cellYear, cellMonth + 1, dayNum);
-              const { entries } = BrewLog.load();
-              const stored = entries.find(en => en.id === entry.id);
-              if (!stored) { closeActivePopover(); return; }
-              const next = stored.beans.roastDate === iso ? '' : iso;
-              stored.beans.roastDate = next;
-              entry.beans.roastDate = next;
-              BrewLog.save(entries);
-              refreshDateTrigger(triggerEl, entry);
-              closeActivePopover();
-            });
-            grid.appendChild(cell);
-          }
-        }
-
-        renderGrid();
-      });
-    }
-
-    function onNewEntry() {
-      const { entries } = BrewLog.load();
-      const entry = BrewLog.createEntry();
-      BrewLog.save([entry, ...entries]);
-      navigate('#/log/' + entry.id);
-    }
-
-    function onDiscard(id) {
-      const L = logLabels();
-      if (typeof confirm !== 'function' || !confirm(L.discardConfirm)) return;
-      const { entries } = BrewLog.load();
-      const next = entries.filter(e => e.id !== id);
-      BrewLog.save(next);
-      navigate(next.length ? '#/log/' + next[0].id : '#/log');
-    }
-
-    function onImport() {
-      const L = logLabels();
-      if (typeof prompt !== 'function') return;
-      const raw = prompt(L.importPrompt);
-      if (!raw) return;
-      let parsed;
-      try { parsed = JSON.parse(raw); } catch (_) { return; }
-      const incoming = BrewLog.extractEntries(parsed);
-      if (!incoming) return;
-      const { entries } = BrewLog.load();
-      const { entries: merged, added } = BrewLog.mergeImport(entries, incoming);
-      BrewLog.save(merged);
-      if (typeof alert === 'function') {
-        alert(added > 0 ? L.importOk(added) : L.importNone);
-      }
-      applyRoute();
     }
 
     // Write a value at a dotted path on a plain object; creates intermediate objects if missing.
@@ -3145,20 +2217,6 @@
         const shell = journalView.querySelector('.journal-shell[data-bag-id]');
         if (shell && shell.dataset.bagId) { e.preventDefault(); onNewBrew(shell.dataset.bagId); }
       }
-    }
-
-    function onExport() {
-      const { entries } = BrewLog.load();
-      const payload = BrewLog.exportPayload(entries);
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `brew-log-${BrewLog.todayISO()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     }
 
     // Arrow bounce helper
