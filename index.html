@@ -1359,6 +1359,16 @@
         return 'bag_' + h.toString(36);
       }
 
+      // Grouping/merge key. Bags with a real natural identity (a name and/or a
+      // roast date) consolidate by it; a bag with NO identity at all has nothing
+      // to merge on, so it keys by its own id (prefixed with a NUL byte so it can
+      // never collide with a natural key). Prevents identity-less bags from
+      // collapsing into one — which would drop/duplicate bags on import.
+      function bagGroupKey(name, roastDate, id) {
+        const natural = bagKey(name, roastDate);
+        return natural.trim() === '' ? '\u0000' + (id || '') : natural;
+      }
+
       function sanitizeBrew(raw) {
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
         if (typeof raw.id !== 'string' || !raw.id) return null;
@@ -1410,7 +1420,7 @@
         for (const entry of (entries || [])) {
           const beans = entry.beans || {};
           const grinder = entry.grinder || {};
-          const key = bagKey(beans.name, beans.roastDate);
+          const key = bagGroupKey(beans.name, beans.roastDate, entry.id);
           let bag = byKey.get(key);
           if (!bag) {
             bag = createBag({
@@ -1512,14 +1522,14 @@
 
       function mergeJournalImport(existing, incoming) {
         if (!Array.isArray(incoming)) return { bags: existing, addedBags: 0, addedBrews: 0 };
-        const order = existing.map(b => bagKey(b.name, b.roastDate));
-        const byKey = new Map(existing.map(b => [bagKey(b.name, b.roastDate), b]));
+        const order = existing.map(b => bagGroupKey(b.name, b.roastDate, b.id));
+        const byKey = new Map(existing.map(b => [bagGroupKey(b.name, b.roastDate, b.id), b]));
         let addedBags = 0;
         let addedBrews = 0;
         for (const raw of incoming) {
           const clean = sanitizeBag(raw);
           if (!clean) continue;
-          const key = bagKey(clean.name, clean.roastDate);
+          const key = bagGroupKey(clean.name, clean.roastDate, clean.id);
           const prev = byKey.get(key);
           if (!prev) {
             byKey.set(key, clean);

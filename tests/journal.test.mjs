@@ -341,3 +341,47 @@ test("parseRoute maps the three views and legacy redirects", () => {
   assert.equal(b2.bagId, "bag_1");
   assert.equal(b2.brewId, "b9");
 });
+
+test("migrateEntriesToBags keeps identity-less entries as separate bags (no empty-key collision)", () => {
+  const ctx = loadContext();
+  // Two v1 entries with no bean name and no roast date have no natural identity;
+  // they must NOT collapse into one shared bag (that would conflate distinct coffees).
+  const entries = [
+    ctx.BrewLog.createEntry({ id: "e1", grinder: { model: "", setting: "10" } }),
+    ctx.BrewLog.createEntry({ id: "e2", grinder: { model: "", setting: "20" } }),
+  ];
+  const bags = ctx.BrewLog.migrateEntriesToBags(entries);
+  assert.ok(Array.isArray(bags));
+  assert.equal(bags.length, 2, "identity-less entries stay distinct");
+  // each keeps its single brew (no data merged away)
+  assert.equal(bags[0].brews.length, 1);
+  assert.equal(bags[1].brews.length, 1);
+});
+
+test("mergeJournalImport keeps blank-identity bags distinct (no empty-key collision / data loss)", () => {
+  const ctx = loadContext();
+  // Two blank bags (e.g. created via '+ New' and never filled in) share an empty
+  // natural key; importing must not drop one and duplicate the other.
+  const existing = [
+    ctx.BrewLog.createBag({ id: "bag_blank1", brews: [ctx.BrewLog.createBrew({ id: "a1" })] }),
+    ctx.BrewLog.createBag({ id: "bag_blank2", brews: [ctx.BrewLog.createBrew({ id: "a2" })] }),
+  ];
+  const res = ctx.BrewLog.mergeJournalImport(existing, []);
+  assert.equal(res.bags.length, 2, "both blank bags survive an import");
+  const ids = res.bags.map((b) => b.id).sort();
+  assert.equal(ids[0], "bag_blank1");
+  assert.equal(ids[1], "bag_blank2");
+});
+
+test("mergeJournalImport still merges a re-imported blank bag by id (idempotent)", () => {
+  const ctx = loadContext();
+  const existing = [
+    ctx.BrewLog.createBag({ id: "bag_blank1", brews: [ctx.BrewLog.createBrew({ id: "a1" })] }),
+  ];
+  const incoming = [
+    ctx.BrewLog.createBag({ id: "bag_blank1", brews: [ctx.BrewLog.createBrew({ id: "a2" })] }),
+  ];
+  const res = ctx.BrewLog.mergeJournalImport(existing, incoming);
+  assert.equal(res.bags.length, 1, "same-id blank bag merges, not duplicated");
+  assert.equal(res.bags[0].brews.length, 2, "new brew added to the existing blank bag");
+});
