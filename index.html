@@ -2353,6 +2353,14 @@
         navigator.serviceWorker.register('sw.js').catch(() => {});
       });
     }
+
+    // Ask the browser to keep the local journal from being evicted under
+    // storage pressure. Feature-guarded; silent — no permission UI. (ADR 0003)
+    if (navigator.storage && typeof navigator.storage.persist === 'function') {
+      navigator.storage.persisted()
+        .then((already) => already ? true : navigator.storage.persist())
+        .catch(() => {});
+    }
   </script>
 </body>
 </html>
