@@ -194,6 +194,7 @@
     }
     .journal-empty { text-align: center; padding: 3rem 1rem; display: flex; flex-direction: column; gap: 1rem; align-items: center; }
     .journal-empty-msg { color: var(--text-secondary); font-family: var(--font-serif); }
+    .journal-backup-status { color: var(--text-secondary); font-size: 0.8rem; font-family: var(--font-serif); align-self: center; }
     .bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
     .bag-card {
       text-align: left; display: flex; flex-direction: column; gap: 0.4rem;
@@ -1657,6 +1658,8 @@
     const LOG_LABELS = {
       zh: {
         importBtn: '导入', exportBtn: '导出',
+        lastBackup: (days) => days === 0 ? '上次备份 · 今天' : `上次备份 · ${days} 天前`,
+        neverBackedUp: '尚未备份',
         newBag: '+ 新建', newFirstBag: '+ 记第一袋豆子',
         emptyBags: '— 还没有豆子 —', untitledBag: '未命名',
         backToBags: '← 返回', newBrew: '+ 记一杯', newFirstBrew: '+ 记第一杯',
@@ -1681,6 +1684,8 @@
       },
       en: {
         importBtn: 'Import', exportBtn: 'Export',
+        lastBackup: (days) => days === 0 ? 'Last backed up · today' : `Last backed up · ${days} day${days === 1 ? '' : 's'} ago`,
+        neverBackedUp: 'Not backed up yet',
         newBag: '+ New', newFirstBag: '+ Add your first bag',
         emptyBags: '— no bags yet —', untitledBag: 'Untitled',
         backToBags: '← Back', newBrew: '+ New brew', newFirstBrew: '+ Log your first brew',
@@ -1794,11 +1799,17 @@
       const L = logLabels();
       const shell = el('div', { class: 'journal-shell' });
 
+      const lastBackup = BrewLog.getLastBackupAt();
+      const backupText = lastBackup === null
+        ? L.neverBackedUp
+        : L.lastBackup(relativeDays(lastBackup) || 0);
+
       shell.appendChild(el('div', { class: 'journal-toolbar' }, [
         el('div', { class: 'journal-toolbar-group' }, [
           el('button', { class: 'journal-btn primary', type: 'button', text: L.newBag, onclick: onNewBag })
         ]),
         el('div', { class: 'journal-toolbar-group' }, [
+          el('span', { class: 'journal-backup-status', text: backupText }),
           el('button', { class: 'journal-btn', type: 'button', text: L.importBtn, onclick: onImportJournal }),
           el('button', { class: 'journal-btn', type: 'button', text: L.exportBtn, onclick: onExportJournal })
         ])
@@ -1859,6 +1870,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      BrewLog.setLastBackupAt(new Date().toISOString());
     }
 
     function onImportJournal() {
