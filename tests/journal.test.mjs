@@ -416,3 +416,37 @@ test("extractBags still migrates a raw v1-entry array (beans/grinder signature)"
   assert.equal(bags.length, 1);
   assert.equal(bags[0].brews[0].grinderSetting, "20", "v1 entry still migrated into a bag with a brew");
 });
+
+test("getLastBackupAt returns null when never set", () => {
+  const ctx = loadContext({ localStorage: makeLocalStorage() });
+  assert.equal(ctx.BrewLog.getLastBackupAt(), null);
+});
+
+test("setLastBackupAt then getLastBackupAt roundtrips the ISO string", () => {
+  const ls = makeLocalStorage();
+  const ctx = loadContext({ localStorage: ls });
+  ctx.BrewLog.setLastBackupAt("2026-06-08T10:00:00.000Z");
+  assert.equal(ctx.BrewLog.getLastBackupAt(), "2026-06-08T10:00:00.000Z");
+  // persisted under its own key, not mixed into the journal store
+  assert.equal(ls.getItem("grinder-brew-backup-v1"), "2026-06-08T10:00:00.000Z");
+});
+
+test("relativeDays returns 0 for the same calendar day", () => {
+  const ctx = loadContext();
+  const now = Date.parse("2026-06-08T20:00:00.000Z");
+  assert.equal(ctx.relativeDays("2026-06-08T01:00:00.000Z", now), 0);
+});
+
+test("relativeDays counts whole days elapsed", () => {
+  const ctx = loadContext();
+  const now = Date.parse("2026-06-08T12:00:00.000Z");
+  assert.equal(ctx.relativeDays("2026-06-05T12:00:00.000Z", now), 3);
+  assert.equal(ctx.relativeDays("2026-06-07T23:00:00.000Z", now), 1);
+});
+
+test("relativeDays returns null for missing or invalid input", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.relativeDays("", Date.now()), null);
+  assert.equal(ctx.relativeDays("not-a-date", Date.now()), null);
+  assert.equal(ctx.relativeDays(null, Date.now()), null);
+});
