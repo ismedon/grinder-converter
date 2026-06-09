@@ -87,3 +87,7 @@ Open `index.html` directly in a browser — no server needed.
 - **Tests extract the inline `<script>` via regex** — if you restructure the script tag, tests will break
 - **Test DOM stubs are minimal** — if you use a new DOM API (e.g. `setAttribute`, `getAttribute`) in `index.html`, add it to `makeElementStub()` in the test file or all tests will fail
 - Brew method thresholds are per-grinder (not just K-Ultra-based) — each grinder has its own `getBrewMethodByX()` function
+
+## Gotchas
+
+- **Moving this folder hides old sessions.** Claude Code stores history in `~/.claude/projects/<abs-path-with-/-as->`, keyed by the project's absolute path. Move the folder → new key → old sessions vanish from `--resume` (not deleted). To recover: `cp -n` the old dir's `*.jsonl` into the new one.
