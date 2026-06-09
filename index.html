@@ -1756,6 +1756,13 @@
       return Math.max(0, Math.round((startOfDay(now) - startOfDay(then)) / dayMs));
     }
 
+    // Backup is "stale" once it's been this many days since the last export.
+    const BACKUP_STALE_DAYS = 14;
+    function isBackupStale(iso, nowMs) {
+      const days = relativeDays(iso, nowMs);
+      return days !== null && days >= BACKUP_STALE_DAYS;
+    }
+
     function getPath(obj, path) {
       return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
     }
