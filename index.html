@@ -31,11 +31,6 @@
   <meta name="apple-mobile-web-app-title" content="磨豆刻度">
   <meta name="format-detection" content="telephone=no">
 
-  <!-- Google Fonts: Noto Serif SC (UI/labels) + Caveat & Ma Shan Zheng (handwritten input) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
-
   <!-- Icons -->
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -50,10 +45,7 @@
       --border-color: #e5dfd5;
       --success-color: #c45c3c;
       --warning-color: #7d6a38;
-      --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
-      /* handwriting fonts unused after the journal reposition; removed together
-         with the Google Fonts <link> in the PWA-hardening plan (ADR 0003) */
-      --font-hand: "Caveat", "Ma Shan Zheng", "Kaiti SC", "KaiTi", serif;
+      --font-serif: "Songti SC", "Noto Serif CJK SC", Georgia, "Times New Roman", serif;
       --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -202,6 +194,7 @@
     }
     .journal-empty { text-align: center; padding: 3rem 1rem; display: flex; flex-direction: column; gap: 1rem; align-items: center; }
     .journal-empty-msg { color: var(--text-secondary); font-family: var(--font-serif); }
+    .journal-backup-status { color: var(--text-secondary); font-size: 0.8rem; font-family: var(--font-serif); align-self: center; }
     .bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
     .bag-card {
       text-align: left; display: flex; flex-direction: column; gap: 0.4rem;
@@ -1308,6 +1301,24 @@
 
       const JOURNAL_VERSION = 2;
       const STORAGE_KEY_V2 = 'grinder-brew-journal-v2';
+      const STORAGE_KEY_BACKUP = 'grinder-brew-backup-v1';
+
+      function getLastBackupAt() {
+        try {
+          return (typeof localStorage !== 'undefined')
+            ? localStorage.getItem(STORAGE_KEY_BACKUP) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function setLastBackupAt(iso) {
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(STORAGE_KEY_BACKUP, String(iso));
+          }
+        } catch (e) { /* storage unavailable — non-fatal */ }
+      }
 
       function createBrew(overrides) {
         return {
@@ -1591,6 +1602,8 @@
         loadJournal,
         saveJournal,
         exportJournal,
+        getLastBackupAt,
+        setLastBackupAt,
         extractBags,
         mergeJournalImport,
         bestBrew
@@ -1645,6 +1658,8 @@
     const LOG_LABELS = {
       zh: {
         importBtn: '导入', exportBtn: '导出',
+        lastBackup: (days) => days === 0 ? '上次备份 · 今天' : `上次备份 · ${days} 天前`,
+        neverBackedUp: '尚未备份',
         newBag: '+ 新建', newFirstBag: '+ 记第一袋豆子',
         emptyBags: '— 还没有豆子 —', untitledBag: '未命名',
         backToBags: '← 返回', newBrew: '+ 记一杯', newFirstBrew: '+ 记第一杯',
@@ -1669,6 +1684,8 @@
       },
       en: {
         importBtn: 'Import', exportBtn: 'Export',
+        lastBackup: (days) => days === 0 ? 'Last backed up · today' : `Last backed up · ${days} day${days === 1 ? '' : 's'} ago`,
+        neverBackedUp: 'Not backed up yet',
         newBag: '+ New', newFirstBag: '+ Add your first bag',
         emptyBags: '— no bags yet —', untitledBag: 'Untitled',
         backToBags: '← Back', newBrew: '+ New brew', newFirstBrew: '+ Log your first brew',
@@ -1722,6 +1739,21 @@
       return `${y}.${m}.${day}`;
     }
 
+    // Whole days between the calendar day of `iso` and `nowMs` (default now).
+    // Returns null for falsy/unparseable input. nowMs is injectable for tests.
+    function relativeDays(iso, nowMs) {
+      if (!iso) return null;
+      const then = Date.parse(iso);
+      if (Number.isNaN(then)) return null;
+      const now = (typeof nowMs === 'number') ? nowMs : Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      const startOfDay = (ms) => {
+        const d = new Date(ms);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      };
+      return Math.max(0, Math.round((startOfDay(now) - startOfDay(then)) / dayMs));
+    }
+
     function getPath(obj, path) {
       return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
     }
@@ -1767,11 +1799,17 @@
       const L = logLabels();
       const shell = el('div', { class: 'journal-shell' });
 
+      const lastBackup = BrewLog.getLastBackupAt();
+      const backupText = lastBackup === null
+        ? L.neverBackedUp
+        : L.lastBackup(relativeDays(lastBackup) || 0);
+
       shell.appendChild(el('div', { class: 'journal-toolbar' }, [
         el('div', { class: 'journal-toolbar-group' }, [
           el('button', { class: 'journal-btn primary', type: 'button', text: L.newBag, onclick: onNewBag })
         ]),
         el('div', { class: 'journal-toolbar-group' }, [
+          el('span', { class: 'journal-backup-status', text: backupText }),
           el('button', { class: 'journal-btn', type: 'button', text: L.importBtn, onclick: onImportJournal }),
           el('button', { class: 'journal-btn', type: 'button', text: L.exportBtn, onclick: onExportJournal })
         ])
@@ -1832,6 +1870,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      BrewLog.setLastBackupAt(new Date().toISOString());
     }
 
     function onImportJournal() {
@@ -2313,6 +2352,14 @@
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {});
       });
+    }
+
+    // Ask the browser to keep the local journal from being evicted under
+    // storage pressure. Feature-guarded; silent — no permission UI. (ADR 0003)
+    if (navigator.storage && typeof navigator.storage.persist === 'function') {
+      navigator.storage.persisted()
+        .then((already) => already ? true : navigator.storage.persist())
+        .catch(() => {});
     }
   </script>
 </body>
