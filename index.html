@@ -1673,6 +1673,7 @@
         discardConfirm: '确定丢弃这一页？此操作不可撤销。',
         corrupt: '读取到损坏的日志数据，已忽略无法解析的记录。',
         importPrompt: '粘贴日志 JSON（或取消）',
+        importInvalid: '无法读取该文件：不是有效的日志 JSON',
         importOk: (n) => `导入 ${n} 条`,
         importNone: '没有新增记录',
         weatherPh: '天气',
@@ -1699,6 +1700,7 @@
         discardConfirm: 'Discard this page? This cannot be undone.',
         corrupt: 'Some log entries were unreadable and have been skipped.',
         importPrompt: 'Paste journal JSON (or cancel)',
+        importInvalid: 'Could not read that file: not valid journal JSON',
         importOk: (n) => `imported ${n}`,
         importNone: 'nothing new to import',
         weatherPh: 'weather',
@@ -1873,15 +1875,18 @@
       BrewLog.setLastBackupAt(new Date().toISOString());
     }
 
-    function onImportJournal() {
+    function importJournalText(raw) {
       const L = logLabels();
-      if (typeof prompt !== 'function') return;
-      const raw = prompt(L.importPrompt);
-      if (!raw) return;
       let parsed;
-      try { parsed = JSON.parse(raw); } catch (_) { return; }
+      try { parsed = JSON.parse(raw); } catch (_) {
+        if (typeof alert === 'function') alert(L.importInvalid);
+        return;
+      }
       const incoming = BrewLog.extractBags(parsed);
-      if (!incoming) return;
+      if (!incoming) {
+        if (typeof alert === 'function') alert(L.importInvalid);
+        return;
+      }
       const { bags } = BrewLog.loadJournal();
       const { bags: merged, addedBags, addedBrews } = BrewLog.mergeJournalImport(bags, incoming);
       BrewLog.saveJournal(merged);
@@ -1890,6 +1895,21 @@
         alert(added > 0 ? L.importOk(added) : L.importNone);
       }
       applyRoute();
+    }
+
+    function onImportJournal() {
+      if (typeof FileReader !== 'function') return;
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => importJournalText(String(reader.result || ''));
+        reader.readAsText(file);
+      });
+      input.click();
     }
 
     function renderBagView(root, bags, bag, brewId) {
