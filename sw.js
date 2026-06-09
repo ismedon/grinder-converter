@@ -6,8 +6,6 @@
  *     edits propagate to existing installs without a manual version bump.
  *   - Static assets (manifest/icons in APP_SHELL): cache-first, precached on
  *     install. Falls back to network if missing.
- *   - Google Fonts CSS + WOFF2: stale-while-revalidate. First visit needs
- *     network; afterwards served from cache and refreshed in the background.
  *   - Anything else same-origin: cache-first with network fallback.
  *   - Anything else: passes through to network.
  *
@@ -16,9 +14,8 @@
  * 'activate' handler removes stale caches.
  */
 
-const CACHE_VERSION = 'v2-2026-06-06';
+const CACHE_VERSION = 'v3-2026-06-08';
 const APP_CACHE = `grinder-app-${CACHE_VERSION}`;
-const FONT_CACHE = `grinder-fonts-${CACHE_VERSION}`;
 
 const APP_SHELL = [
   './',
@@ -43,16 +40,11 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys
-        .filter((k) => k !== APP_CACHE && k !== FONT_CACHE)
+        .filter((k) => k !== APP_CACHE)
         .map((k) => caches.delete(k)),
     )).then(() => self.clients.claim()),
   );
 });
-
-function isFontRequest(url) {
-  return url.hostname === 'fonts.googleapis.com'
-      || url.hostname === 'fonts.gstatic.com';
-}
 
 function isHtmlNavigation(request, url) {
   if (request.mode === 'navigation') return true;
@@ -86,28 +78,11 @@ async function networkFirst(request, cacheName) {
   }
 }
 
-async function staleWhileRevalidate(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  const networkPromise = fetch(request).then((response) => {
-    if (response && (response.ok || response.type === 'opaque')) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  }).catch(() => cached);
-  return cached || networkPromise;
-}
-
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-
-  if (isFontRequest(url)) {
-    event.respondWith(staleWhileRevalidate(request, FONT_CACHE));
-    return;
-  }
 
   if (isHtmlNavigation(request, url)) {
     event.respondWith(networkFirst(request, APP_CACHE));

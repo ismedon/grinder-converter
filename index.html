@@ -31,11 +31,6 @@
   <meta name="apple-mobile-web-app-title" content="磨豆刻度">
   <meta name="format-detection" content="telephone=no">
 
-  <!-- Google Fonts: Noto Serif SC (UI/labels) + Caveat & Ma Shan Zheng (handwritten input) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
-
   <!-- Icons -->
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -50,10 +45,7 @@
       --border-color: #e5dfd5;
       --success-color: #c45c3c;
       --warning-color: #7d6a38;
-      --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
-      /* handwriting fonts unused after the journal reposition; removed together
-         with the Google Fonts <link> in the PWA-hardening plan (ADR 0003) */
-      --font-hand: "Caveat", "Ma Shan Zheng", "Kaiti SC", "KaiTi", serif;
+      --font-serif: "Songti SC", "Noto Serif CJK SC", Georgia, "Times New Roman", serif;
       --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
