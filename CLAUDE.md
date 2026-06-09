@@ -91,3 +91,4 @@ Open `index.html` directly in a browser — no server needed.
 ## Gotchas
 
 - **Moving this folder hides old sessions.** Claude Code stores history in `~/.claude/projects/<abs-path-with-/-as->`, keyed by the project's absolute path. Move the folder → new key → old sessions vanish from `--resume` (not deleted). To recover: `cp -n` the old dir's `*.jsonl` into the new one.
+- **Moving this folder also breaks the `claude agents` dashboard** ("working dir doesn't exist"). It reopens jobs by cd-ing into the `cwd`/`originCwd` stored in `~/.claude/jobs/<id>/state.json`. To recover: rewrite the old path to the new one in those files (`--resume` is unaffected).
