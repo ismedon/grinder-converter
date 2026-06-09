@@ -1300,6 +1300,24 @@
 
       const JOURNAL_VERSION = 2;
       const STORAGE_KEY_V2 = 'grinder-brew-journal-v2';
+      const STORAGE_KEY_BACKUP = 'grinder-brew-backup-v1';
+
+      function getLastBackupAt() {
+        try {
+          return (typeof localStorage !== 'undefined')
+            ? localStorage.getItem(STORAGE_KEY_BACKUP) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function setLastBackupAt(iso) {
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(STORAGE_KEY_BACKUP, String(iso));
+          }
+        } catch (e) { /* storage unavailable — non-fatal */ }
+      }
 
       function createBrew(overrides) {
         return {
@@ -1583,6 +1601,8 @@
         loadJournal,
         saveJournal,
         exportJournal,
+        getLastBackupAt,
+        setLastBackupAt,
         extractBags,
         mergeJournalImport,
         bestBrew
