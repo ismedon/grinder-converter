@@ -1734,6 +1734,21 @@
       return `${y}.${m}.${day}`;
     }
 
+    // Whole days between the calendar day of `iso` and `nowMs` (default now).
+    // Returns null for falsy/unparseable input. nowMs is injectable for tests.
+    function relativeDays(iso, nowMs) {
+      if (!iso) return null;
+      const then = Date.parse(iso);
+      if (Number.isNaN(then)) return null;
+      const now = (typeof nowMs === 'number') ? nowMs : Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      const startOfDay = (ms) => {
+        const d = new Date(ms);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      };
+      return Math.max(0, Math.round((startOfDay(now) - startOfDay(then)) / dayMs));
+    }
+
     function getPath(obj, path) {
       return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
     }
