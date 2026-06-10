@@ -1,94 +1,48 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+冲煮手记 / Brew Journal — a bag-centric coffee dial-in journal, with the original grinder-setting converter (Comandante C40 ↔ 1Zpresso K-Ultra ↔ Mahlkönig EK43) demoted to a secondary page. Bilingual (zh primary, en toggle), wabi-sabi visual design, installable local-first PWA — no backend, ever (ADR 0003).
 
-## Project Overview
+Live: https://ismedon.github.io/grinder-converter/ — the repo name and URL deliberately keep the old converter identity for inbound links (ADR 0001). GitHub Pages deploys from `main`. PRs get an automatic Claude review, and `@claude` mentions work in issues/PRs (`.github/workflows/`).
 
-Coffee grinder setting converter — a single-page web tool that converts grind settings between Comandante C40, 1Zpresso K-Ultra, and Mahlkönig EK43. Bilingual (Chinese/English), wabi-sabi visual design. Deployed via GitHub Pages.
+Read `CONTEXT.md` (Bag/Brew/Dial-in vocabulary, modeling decisions) and `docs/adr/` before product-shaping work. Dated design plans live in `docs/plans/`; user-facing changes are logged in `CHANGELOG.md` (zh, versioned).
 
-Live: https://ismedon.github.io/grinder-converter/
+## Layout
 
-## Architecture
+- `index.html` — the whole app: markup, CSS, and all application JS in the **first** `<script>` block. No build, no framework, no external resources (system font stacks — Google Fonts was removed for offline use).
+- A second, tiny `<script>` block at the end holds only PWA wiring (service-worker registration, `navigator.storage.persist()`). It sits outside the first block on purpose — tests never see it.
+- `sw.js` — network-first for HTML, cache-first for shell assets; bump `CACHE_VERSION` only when the precache list or icons/manifest change (plain HTML edits propagate without a bump). `manifest.webmanifest`, `icons/` (regenerate via `scripts/generate_icons.py`).
+- `reference/` — original PRD and calibration research (see Hard rules).
 
-**Single-file app**: Everything lives in `index.html` — HTML structure, CSS (in `<style>`), and JavaScript (in `<script>`). No build step, no framework, no external JS dependencies. Only external resource is Google Fonts (Noto Serif SC).
+## Hard rules
 
-### Conversion Engine
+- **Anchor data is physical measurement, not code.** The `*_TO_K_POINTS` arrays were calibrated from real-world brewing. Never change the values without explicit user approval. Provenance: the 附录 of `reference/grinder-converter-project.md` (it supersedes the PRD's original ×3.75 coefficient) and `reference/c40-kultra-conversion-research.md`; pinned by `tests/conversion-accuracy.test.mjs`.
+- **App code stays in `index.html`, inside the first `<script>` block.** Single-file/no-build is a standing decision (ADRs 0001, 0003), and the test harness executes exactly that block.
+- **`var BrewLog` stays `var`.** Tests run the script via `vm.runInContext`, which exposes only `var`/function declarations on the context object — `const`/`let` would break `ctx.BrewLog` in all three test files.
+- **Never assign `.innerHTML`.** Build DOM with `el()` and `clearChildren()`.
 
-Conversions use **piecewise linear interpolation** through calibrated anchor points, with K-Ultra as the hub:
-- `Source → K-Ultra → Target` (two-hop via `toKUltra()` → `fromKUltra()`)
-- Anchor point arrays: `C40_TO_K_POINTS`, `K_TO_C40_POINTS`, `EK43_TO_K_POINTS`, `K_TO_EK43_POINTS`
-- `interpolatePiecewise()` handles the math; results are clamped to target grinder range
-- The anchor points are asymmetric (C40→K vs K→C40 are separate arrays) to preserve accuracy in each direction
+## Tests
 
-### K-Ultra Notation
-
-K-Ultra uses X.Y.Z format (rotation.number.tick), where total clicks = X×100 + Y×10 + Z. `clicksToNotation()` converts.
-
-### i18n
-
-`i18n` object with `zh` and `en` keys. `currentLang` state variable. `updateTexts()` pushes translations to DOM elements. All user-visible strings are in the i18n object.
-
-### Design System (Wabi-Sabi)
-
-CSS custom properties in `:root` — warm earth tones with dark mode via `prefers-color-scheme: dark`. Serif headings (Noto Serif SC), muted colors, minimal shadows.
-
-### Brew Journal
-
-The app is a **Bag-centric brew journal** (the converter is a secondary page). A hash router (`parseRoute()`/`applyRoute()`) switches two top-level views — `#journalView` and `#converterView`:
-
-- `#/` (and legacy `#/log`, `#/log/<id>`) → **dashboard**: a grid of bag cards.
-- `#/bag/<bagId>[/<brewId>]` → **bag timeline**: editable bag identity header, the best brew pinned, remaining brews grouped by method, and an editable (open) brew card when `<brewId>` is present.
-- `#/convert` → the **converter**.
-
-`renderJournal(route)` is the entry point; it dispatches to `renderDashboard` / `renderBagView`. All fields are `contenteditable` with focusout-to-save (delegated `onEditableBlur` on `#journalView`).
-
-- **Storage** (owned entirely by the `BrewLog` IIFE — components never touch `localStorage`):
-  - `grinder-brew-journal-v2` (`STORAGE_KEY_V2`, `JOURNAL_VERSION = 2`) — the **live** store: a JSON array of Bags. Read/written via `loadJournal()` / `saveJournal()`.
-  - `grinder-brew-log-v1` (`STORAGE_KEY`, `SCHEMA_VERSION = 1`) — the **preserved v1 backup**: read once for migration, never written after.
-- **Migration (automatic + idempotent)**: on first `loadJournal()` with no v2 key, `migrateEntriesToBags()` consolidates v1 flat entries into Bags, persists v2, and leaves v1 untouched. Bag ids are deterministic — `bagIdFromKey(bagKey(name, roastDate))` — so re-running migration/import yields the same ids.
-- **Schema** (constructors are the source of truth):
-  - Bag (`createBag()`): `id`, `schemaVersion: 2`, `createdAt` (ISO), `name`, `origin`, `roastDate` (`YYYY-MM-DD`), `roastLevel`, `grinderModel`, `status` (`'active' | 'finished'`), `brews: [Brew]`
-  - Brew (`createBrew()`): `id`, `createdAt` (ISO), `date` (`YYYY-MM-DD`), `weather`, `grinderSetting`, `brew: {method, dripper, waterTempC, dose, yield, totalTimeSec, pourSegments}`, `extraction: {tds, ey}`, `rating` (0–5 int), `flavorNotes`, `reflection`
-  - **Natural identity**: a Bag is keyed by `bagKey(name, roastDate)` (trimmed, name lower-cased). Migration and import consolidate/merge by this key.
-- **Sanitizers**: `sanitizeBag()` / `sanitizeBrew()` drop malformed input (return `null`) instead of throwing — strip unknown fields, clamp rating to int 0–5, normalize roastLevel, default unknown status to `'active'`, and sanitize nested brews (dropping invalid ones). (`sanitizeEntry()` for v1 entries still exists for the migration path.)
-- **Import is shape-agnostic**: `extractBags()` accepts a v2 payload (`{schemaVersion: 2, bags}`), a raw bag array, or any v1 shape (`{schemaVersion: 1, entries}` / raw entry array — migrated to bags). `mergeJournalImport()` merges incoming bags by natural key; within a bag, brews merge by `id` with the later `createdAt` winning. `exportJournal()` wraps bags as `{schemaVersion: 2, exportedAt, bags}`.
-- **Best brew**: `bestBrew(bag)` returns the highest-rated brew (latest `createdAt` wins ties), or `null` if none are rated > 0.
-- **Converter demotion**: the converter lives at `#/convert`; the open brew card's grind-setting field has an inline "translate" button that jumps to the converter pre-targeted to the bag's grinder (`preselectConverterTarget`).
-- **`var BrewLog` is load-bearing for tests** — `vm.runInContext` only attaches `var` and function declarations to the context object. Switching to `const`/`let` would make `ctx.BrewLog` unreachable from the test files.
-- **`LOG_LABELS`** is a separate object from `i18n` — per-render journal labels stay in `LOG_LABELS` (read fresh via `logLabels()`); strings that re-label on language switch via `updateTexts()` (incl. the `tabJournal`/`tabConverter` view-switcher labels) live in `i18n`.
-- **DOM convention**: never assign to `.innerHTML`. Use `clearChildren(node)` and the `el()` helper. A pre-commit hook on this machine enforces this.
-
-## Commands
-
-### Run tests
 ```
 node --test tests/*.test.mjs
 ```
 
-Tests use Node.js built-in test runner with `node:test` and `node:vm`. They extract the `<script>` from `index.html` and run it in a sandboxed VM context with DOM stubs, then test the conversion functions directly.
+Node built-ins only (`node:test`, `node:vm`). Each of the three test files regex-extracts the first literal `<script>…</script>` pair from `index.html` (the tag must stay attribute-free) and runs it in a VM context over hand-rolled DOM stubs. Consequences:
 
-### Preview locally
-Open `index.html` directly in a browser — no server needed.
+- Anything outside that first block is invisible to tests.
+- The stubs implement only the DOM APIs the app currently uses, and each test file carries its own copy (`makeElementStub()` …). Using a new DOM API in `index.html` means extending the stubs in **all three** files, or every test fails at load.
 
-## Key Files
+Preview: open `index.html` directly in a browser — everything works from `file://` except service-worker/install features (those need https or localhost; the canonical install is the Pages URL).
 
-- `index.html` — the entire application
-- `tests/conversion-accuracy.test.mjs` — anchor regression, roundtrip consistency, and range-clamping tests
-- `tests/brew-log.test.mjs` — v1 entry schema, sanitize, import/export, and corrupt-storage tests (the v1 layer kept for migration/back-compat)
-- `tests/journal.test.mjs` — v2 Bag/Brew constructors, natural-key + deterministic id, sanitizers, v1→v2 migration, load/save, both-shape import + merge, best-brew, and routing
-- `reference/grinder-converter-project.md` — original PRD with data specs and brew method tables; **see its 附录 (appendix) for the calibration rationale that supersedes the original ×3.75 linear coefficient**
-- `reference/c40-kultra-conversion-research.md` — 2026-06 community/source research on C40↔K-Ultra (refutes ×1.5 and ×3.2 single-coefficient formulas; confirms the brew-chart-calibrated piecewise approach is more accurate)
-- `docs/plans/` — design plans for the wabi-sabi redesign
+## Orientation
 
-## Important Constraints
+The code is the source of truth; this is the map.
 
-- **Single-file architecture must be preserved** — all HTML/CSS/JS stays in `index.html`
-- **Anchor point data is calibrated from real-world measurements** — do not change conversion values without explicit user approval
-- **Tests extract the inline `<script>` via regex** — if you restructure the script tag, tests will break
-- **Test DOM stubs are minimal** — if you use a new DOM API (e.g. `setAttribute`, `getAttribute`) in `index.html`, add it to `makeElementStub()` in the test file or all tests will fail
-- Brew method thresholds are per-grinder (not just K-Ultra-based) — each grinder has its own `getBrewMethodByX()` function
+- **Converter** — piecewise-linear interpolation (`interpolatePiecewise`) through the anchor arrays, K-Ultra as hub: `convertValue()` = `toKUltra()` → `fromKUltra()` → clamp to the target's range. Per-direction arrays (C40→K vs K→C40) are intentionally asymmetric. K-Ultra notation `X.Y.Z` = X×100 + Y×10 + Z clicks (`clicksToNotation`). Brew-method suggestions use per-grinder thresholds (`getBrewMethodByC40` / `ByKUltra` / `ByEK43`).
+- **Routing** — hash router (`parseRoute`/`applyRoute` → `renderJournal`): `#/` bag-card dashboard, `#/bag/<id>[/<brewId>]` bag timeline (best brew pinned, brews grouped by method, open brew editable), `#/convert` converter; legacy `#/log…` routes fall back to the dashboard. Journal fields are `contenteditable`, saved on focusout via delegated `onEditableBlur`.
+- **Storage** — only the `BrewLog` IIFE touches `localStorage`: `grinder-brew-journal-v2` (live store), `grinder-brew-log-v1` (frozen pre-migration backup — read once by the idempotent v1→v2 migration, never written again), and a last-backup timestamp (`STORAGE_KEY_BACKUP`). A Bag's natural key is `bagKey(name, roastDate)`; ids derive from it deterministically, so migration/import re-runs converge on the same ids (ADR 0002). `createBag()` / `createBrew()` are the schema source of truth. Sanitizers return `null` instead of throwing. Import accepts v1 and v2 shapes, merging bags by natural key and brews by `id` (later `createdAt` wins).
+- **i18n, two mechanisms** — strings that re-render on language toggle live in `i18n` and flow through `updateTexts()`; journal labels are read fresh each render from `LOG_LABELS` via `logLabels()`. Every user-visible string belongs in one of the two.
 
-## Gotchas
+## This machine (not the code)
 
-- **Moving this folder hides old sessions.** Claude Code stores history in `~/.claude/projects/<abs-path-with-/-as->`, keyed by the project's absolute path. Move the folder → new key → old sessions vanish from `--resume` (not deleted). To recover: `cp -n` the old dir's `*.jsonl` into the new one.
-- **Moving this folder also breaks the `claude agents` dashboard** ("working dir doesn't exist"). It reopens jobs by cd-ing into the `cwd`/`originCwd` stored in `~/.claude/jobs/<id>/state.json`. To recover: rewrite the old path to the new one in those files (`--resume` is unaffected).
+- Moving this folder hides old Claude Code sessions — history lives under `~/.claude/projects/`, keyed by absolute path. Recover: `cp -n` the old dir's `*.jsonl` into the new one.
+- It also breaks the `claude agents` dashboard ("working dir doesn't exist") — rewrite `cwd`/`originCwd` in `~/.claude/jobs/<id>/state.json`. `--resume` is unaffected.
