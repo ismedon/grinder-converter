@@ -450,3 +450,17 @@ test("relativeDays returns null for missing or invalid input", () => {
   assert.equal(ctx.relativeDays("not-a-date", Date.now()), null);
   assert.equal(ctx.relativeDays(null, Date.now()), null);
 });
+
+test("isBackupStale is false before 14 days, true at/after the threshold", () => {
+  const ctx = loadContext();
+  const now = Date.parse("2026-06-15T12:00:00.000Z");
+  assert.equal(ctx.isBackupStale("2026-06-02T12:00:00.000Z", now), false); // 13 days
+  assert.equal(ctx.isBackupStale("2026-06-01T12:00:00.000Z", now), true);  // 14 days
+  assert.equal(ctx.isBackupStale("2026-05-20T12:00:00.000Z", now), true);  // 26 days
+});
+
+test("isBackupStale returns false when never backed up", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.isBackupStale(null, Date.now()), false);
+  assert.equal(ctx.isBackupStale("", Date.now()), false);
+});
