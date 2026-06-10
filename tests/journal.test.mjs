@@ -464,3 +464,73 @@ test("isBackupStale returns false when never backed up", () => {
   assert.equal(ctx.isBackupStale(null, Date.now()), false);
   assert.equal(ctx.isBackupStale("", Date.now()), false);
 });
+
+// ── undo for brew discard: pure remove/restore helpers ──
+
+function makeBagWithBrews(ctx, brewIds) {
+  const bag = ctx.BrewLog.createBag();
+  bag.name = "Undo Test";
+  bag.brews = brewIds.map((id) => {
+    const brew = ctx.BrewLog.createBrew();
+    brew.id = id;
+    return brew;
+  });
+  return bag;
+}
+
+test("removeBrewFromBags removes the brew and returns it with its index", () => {
+  const ctx = loadContext();
+  const bag = makeBagWithBrews(ctx, ["a", "b", "c"]);
+  const bags = [bag];
+  const removed = ctx.removeBrewFromBags(bags, bag.id, "b");
+  assert.equal(removed.brew.id, "b");
+  assert.equal(removed.index, 1);
+  assert.deepEqual(bag.brews.map((b) => b.id), ["a", "c"]);
+});
+
+test("removeBrewFromBags returns null for a missing bag or brew", () => {
+  const ctx = loadContext();
+  const bag = makeBagWithBrews(ctx, ["a"]);
+  assert.equal(ctx.removeBrewFromBags([bag], "no-such-bag", "a"), null);
+  assert.equal(ctx.removeBrewFromBags([bag], bag.id, "no-such-brew"), null);
+  assert.equal(bag.brews.length, 1, "miss must not mutate");
+});
+
+test("restoreBrewToBags re-inserts at the original index", () => {
+  const ctx = loadContext();
+  const bag = makeBagWithBrews(ctx, ["a", "b", "c"]);
+  const bags = [bag];
+  const removed = ctx.removeBrewFromBags(bags, bag.id, "b");
+  const ok = ctx.restoreBrewToBags(bags, bag.id, removed.brew, removed.index);
+  assert.equal(ok, true);
+  assert.deepEqual(bag.brews.map((b) => b.id), ["a", "b", "c"]);
+});
+
+test("restoreBrewToBags clamps an out-of-range index", () => {
+  const ctx = loadContext();
+  const bag = makeBagWithBrews(ctx, ["a"]);
+  const brew = ctx.BrewLog.createBrew();
+  brew.id = "z";
+  assert.equal(ctx.restoreBrewToBags([bag], bag.id, brew, 99), true);
+  assert.deepEqual(bag.brews.map((b) => b.id), ["a", "z"]);
+});
+
+test("restoreBrewToBags no-ops on a missing bag or duplicate brew id", () => {
+  const ctx = loadContext();
+  const bag = makeBagWithBrews(ctx, ["a"]);
+  const brew = ctx.BrewLog.createBrew();
+  brew.id = "a"; // duplicate of an existing brew
+  assert.equal(ctx.restoreBrewToBags([bag], "no-such-bag", brew, 0), false);
+  assert.equal(ctx.restoreBrewToBags([bag], bag.id, brew, 0), false);
+  assert.equal(bag.brews.length, 1);
+});
+
+test("discard then undo roundtrip leaves the journal unchanged", () => {
+  const ctx = loadContext();
+  const bag = makeBagWithBrews(ctx, ["x", "y"]);
+  const bags = [bag];
+  const before = JSON.stringify(bags);
+  const removed = ctx.removeBrewFromBags(bags, bag.id, "x");
+  ctx.restoreBrewToBags(bags, bag.id, removed.brew, removed.index);
+  assert.equal(JSON.stringify(bags), before);
+});

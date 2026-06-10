@@ -1766,6 +1766,30 @@
       return days !== null && days >= BACKUP_STALE_DAYS;
     }
 
+    // Pure helpers behind discard-undo: mutate `bags` in place so callers can
+    // saveJournal() the same array they loaded.
+    function removeBrewFromBags(bags, bagId, brewId) {
+      const bag = (bags || []).find(b => b && b.id === bagId);
+      if (!bag || !Array.isArray(bag.brews)) return null;
+      const index = bag.brews.findIndex(b => b && b.id === brewId);
+      if (index === -1) return null;
+      const brew = bag.brews.splice(index, 1)[0];
+      return { brew, index };
+    }
+
+    function restoreBrewToBags(bags, bagId, brew, index) {
+      if (!brew) return false;
+      const bag = (bags || []).find(b => b && b.id === bagId);
+      if (!bag || !Array.isArray(bag.brews)) return false;
+      if (bag.brews.some(b => b && b.id === brew.id)) return false;
+      const at = Math.max(0, Math.min(
+        typeof index === 'number' ? index : bag.brews.length,
+        bag.brews.length
+      ));
+      bag.brews.splice(at, 0, brew);
+      return true;
+    }
+
     function getPath(obj, path) {
       return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
     }
