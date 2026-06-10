@@ -242,6 +242,19 @@
     .log-editable.is-empty::before { content: attr(data-placeholder); color: var(--text-secondary); opacity: 0.55; }
     .brew-footer-actions { margin-top: 0.75rem; }
     .brew-discard { background: none; border: none; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; }
+    .app-toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 1rem; max-width: calc(100vw - 2rem);
+      padding: 0.65rem 1.1rem; border: 1px solid var(--border-color); border-radius: 6px;
+      background: var(--card-bg); color: var(--text-primary);
+      font-family: var(--font-serif); font-size: 0.9rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12); z-index: 100;
+    }
+    .app-toast-action {
+      background: none; border: none; padding: 0; color: var(--accent-color);
+      font-family: inherit; font-size: inherit; cursor: pointer; white-space: nowrap;
+      text-decoration: underline; text-underline-offset: 0.2em;
+    }
     .grind-translate-btn { font-size: 0.72rem; cursor: pointer; white-space: nowrap;
       border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--accent-color); padding: 0 0.4rem; }
 
@@ -770,6 +783,8 @@
     </div>
     </div><!-- /#converterView -->
     </main>
+
+    <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
   </div>
 
   <script>
@@ -1672,7 +1687,8 @@
         bagRoastLevel: '烘焙度', bagGrinderModel: '磨豆机',
         brewGrindSetting: '刻度', translateGrind: '换算 ⇄',
         discardBrew: '丢弃这一杯',
-        discardConfirm: '确定丢弃这一页？此操作不可撤销。',
+        discardedToast: '已丢弃一杯', undo: '撤销',
+        swUpdateToast: '应用有新版本', swRefresh: '刷新',
         corrupt: '读取到损坏的日志数据，已忽略无法解析的记录。',
         importPrompt: '粘贴日志 JSON（或取消）',
         importInvalid: '无法读取该文件：不是有效的日志 JSON',
@@ -1700,7 +1716,8 @@
         bagRoastLevel: 'roast', bagGrinderModel: 'grinder',
         brewGrindSetting: 'grind', translateGrind: 'convert ⇄',
         discardBrew: 'discard this brew',
-        discardConfirm: 'Discard this page? This cannot be undone.',
+        discardedToast: 'Brew discarded', undo: 'Undo',
+        swUpdateToast: 'New version available', swRefresh: 'Refresh',
         corrupt: 'Some log entries were unreadable and have been skipped.',
         importPrompt: 'Paste journal JSON (or cancel)',
         importInvalid: 'Could not read that file: not valid journal JSON',
@@ -1814,6 +1831,30 @@
         for (const c of children) if (c) node.appendChild(c);
       }
       return node;
+    }
+
+    // App-level toast. One at a time — a new toast replaces the current one.
+    let toastTimer = null;
+    function showToast(message, opts) {
+      const node = document.getElementById('appToast');
+      if (!node) return;
+      const o = opts || {};
+      hideToast();
+      node.appendChild(el('span', { class: 'app-toast-msg', text: message }));
+      if (o.actionLabel && typeof o.onAction === 'function') {
+        node.appendChild(el('button', {
+          class: 'app-toast-action', type: 'button', text: o.actionLabel,
+          onclick: () => { hideToast(); o.onAction(); }
+        }));
+      }
+      node.hidden = false;
+      toastTimer = setTimeout(hideToast, typeof o.durationMs === 'number' ? o.durationMs : 8000);
+    }
+
+    function hideToast() {
+      if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+      const node = document.getElementById('appToast');
+      if (node) { node.hidden = true; clearChildren(node); }
     }
 
     function renderJournal(route) {
@@ -2274,15 +2315,29 @@
       if (typeof convert === 'function') convert();
     }
 
+    // Discard is immediate; the toast's undo window (one most-recent discard,
+    // in-memory only) is the safety net. A reload makes the discard final.
+    let lastDiscarded = null;
     function onDiscardBrew(bagId, brewId) {
       const L = logLabels();
-      if (typeof confirm !== 'function' || !confirm(L.discardConfirm)) return;
       const { bags } = BrewLog.loadJournal();
-      const bag = bags.find(b => b.id === bagId);
-      if (!bag) return;
-      bag.brews = bag.brews.filter(b => b.id !== brewId);
+      const removed = removeBrewFromBags(bags, bagId, brewId);
+      if (!removed) return;
       BrewLog.saveJournal(bags);
+      lastDiscarded = { bagId, brew: removed.brew, index: removed.index };
       navigate('#/bag/' + bagId);
+      showToast(L.discardedToast, { actionLabel: L.undo, onAction: onUndoDiscard });
+    }
+
+    function onUndoDiscard() {
+      if (!lastDiscarded) return;
+      const { bags } = BrewLog.loadJournal();
+      const ok = restoreBrewToBags(bags, lastDiscarded.bagId, lastDiscarded.brew, lastDiscarded.index);
+      if (ok) {
+        BrewLog.saveJournal(bags);
+        navigate('#/bag/' + lastDiscarded.bagId);
+      }
+      lastDiscarded = null;
     }
 
     function onLogKeydown(e) {
