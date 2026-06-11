@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.0.3] - 2026-06-12
+
+### Fixed
+- **页面底部常驻一个空小方块**：toast 容器 `.app-toast` 的 `display: flex` 覆盖了浏览器对 `hidden` 属性的 `display: none`，导致空容器（边框 + 阴影的小药丸）固定显示在每页底部中央。补上 `.app-toast[hidden] { display: none; }`（与 `.view[hidden]` 同一模式）
+
 ## [3.0.2] - 2026-06-08
 
 ### Fixed
