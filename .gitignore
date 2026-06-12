@@ -16,4 +16,6 @@ reference/
 # Local screenshots & design material (not part of the app)
 app bug/
 design reference/
+design_handoff_*/
 screenshot-*.png
+brew journal.zip
