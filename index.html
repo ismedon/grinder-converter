@@ -198,6 +198,7 @@
     .journal-backup-status.is-stale { color: var(--warning-color); }
     .bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
     .bag-card {
+      position: relative;
       text-align: left; display: flex; flex-direction: column; gap: 0.4rem;
       padding: 1rem 1.1rem; border-radius: 12px; cursor: pointer;
       border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary);
@@ -205,9 +206,29 @@
     }
     .bag-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
     .bag-card.is-finished { opacity: 0.6; }
-    .bag-card-name { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; }
+    .bag-card-name { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; padding-right: 1.7rem; }
     .bag-card-meta { font-size: 0.82rem; color: var(--text-secondary); }
     .bag-card-stats { font-size: 0.82rem; color: var(--accent-color); }
+    .bag-card-delete {
+      position: absolute; top: 0.45rem; right: 0.45rem;
+      width: 1.9rem; height: 1.9rem; display: flex; align-items: center; justify-content: center;
+      background: none; border: none; border-radius: 50%; cursor: pointer;
+      color: var(--text-secondary); font-size: 1.05rem; line-height: 1; opacity: 0.35;
+      transition: opacity 0.18s ease, color 0.18s ease, background 0.18s ease;
+    }
+    .bag-card:hover .bag-card-delete { opacity: 0.9; }
+    .bag-card-delete:hover { color: var(--success-color); background: rgba(196, 92, 60, 0.08); opacity: 1; }
+    .bag-card.is-confirming { border-color: rgba(196, 92, 60, 0.5); cursor: default; }
+    .bag-card.is-confirming:hover { border-color: rgba(196, 92, 60, 0.5); transform: none; }
+    .bag-card-confirm-actions { display: flex; gap: 1.5rem; align-items: center; margin-top: 0.1rem; }
+    .bag-card-confirm-delete, .bag-card-confirm-keep {
+      background: none; border: none; padding: 0.3rem 0;
+      font-family: var(--font-serif); font-size: 0.85rem; letter-spacing: 0.05em; cursor: pointer;
+    }
+    .bag-card-confirm-delete { color: var(--success-color); font-weight: 600; }
+    .bag-card-confirm-delete:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .bag-card-confirm-keep { color: var(--text-secondary); }
+    .bag-card-confirm-keep:hover { color: var(--text-primary); }
 
     /* ── Journal: bag timeline ───────────────────────────────── */
     .bag-header { padding: 0.5rem 0 1rem; border-bottom: 1px solid var(--border-color); }
@@ -1667,6 +1688,7 @@
       const btnConverter = document.getElementById('viewBtnConverter');
 
       const isConvert = route.view === 'convert';
+      if (isConvert) confirmingBagId = null;
       if (journalView) journalView.hidden = isConvert;
       if (converterView) converterView.hidden = !isConvert;
       if (btnJournal) btnJournal.classList.toggle('active', !isConvert);
@@ -1698,6 +1720,11 @@
         brewGrindSetting: '刻度', translateGrind: '换算 ⇄',
         discardBrew: '丢弃这一杯',
         discardedToast: '已丢弃一杯', undo: '撤销',
+        deleteBag: '删除这袋豆子',
+        confirmDeleteBag: '删除这袋豆子？',
+        confirmDeleteMeta: (n) => `${n} 杯冲煮记录将一并删去`,
+        deleteConfirm: '删除', deleteKeep: '留着',
+        deletedBagToast: (name) => `已删除「${name}」`,
         swUpdateToast: '应用有新版本', swRefresh: '刷新',
         corrupt: '读取到损坏的日志数据，已忽略无法解析的记录。',
         importPrompt: '粘贴日志 JSON（或取消）',
@@ -1727,6 +1754,11 @@
         brewGrindSetting: 'grind', translateGrind: 'convert ⇄',
         discardBrew: 'discard this brew',
         discardedToast: 'Brew discarded', undo: 'Undo',
+        deleteBag: 'Delete this bag',
+        confirmDeleteBag: 'Delete this bag?',
+        confirmDeleteMeta: (n) => `${n} brew${n === 1 ? '' : 's'} will be deleted with it`,
+        deleteConfirm: 'delete', deleteKeep: 'keep',
+        deletedBagToast: (name) => `Deleted "${name}"`,
         swUpdateToast: 'New version available', swRefresh: 'Refresh',
         corrupt: 'Some log entries were unreadable and have been skipped.',
         importPrompt: 'Paste journal JSON (or cancel)',
@@ -1870,6 +1902,8 @@
     function renderJournal(route) {
       const root = document.getElementById('journalView');
       if (!root) return;
+      // Confirm state is in-memory only; leaving the dashboard resets it.
+      if (route.view !== 'dashboard') confirmingBagId = null;
       clearChildren(root);
       const { bags, corrupt } = BrewLog.loadJournal();
 
@@ -1925,10 +1959,13 @@
 
     function renderBagCard(bag) {
       const L = logLabels();
+      if (bag.id === confirmingBagId) return renderBagConfirmCard(bag);
       const best = BrewLog.bestBrew(bag);
-      const card = el('button', {
+      // Not a <button>: the delete control inside must be a real <button>,
+      // and buttons can't nest. role+tabindex+keydown keep it keyboard-reachable.
+      const card = el('div', {
         class: 'bag-card' + (bag.status === 'finished' ? ' is-finished' : ''),
-        type: 'button', 'data-bag-id': bag.id
+        role: 'button', tabindex: '0', 'data-bag-id': bag.id
       }, [
         el('div', { class: 'bag-card-name', text: bag.name || L.untitledBag }),
         el('div', { class: 'bag-card-meta', text: [
@@ -1936,10 +1973,35 @@
         ].filter(Boolean).join(' · ') }),
         el('div', { class: 'bag-card-stats', text:
           L.brewCount(bag.brews.length) + (best ? ' · ' + '✦'.repeat(Math.max(0, Math.min(5, best.rating))) : '')
+        }),
+        el('button', {
+          class: 'bag-card-delete', type: 'button', text: '×', 'aria-label': L.deleteBag,
+          onclick: (e) => { e.stopPropagation(); onDeleteBagClick(bag.id); }
         })
       ]);
       card.addEventListener('click', () => navigate('#/bag/' + bag.id));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('#/bag/' + bag.id); }
+      });
       return card;
+    }
+
+    function renderBagConfirmCard(bag) {
+      const L = logLabels();
+      return el('div', { class: 'bag-card is-confirming', 'data-bag-id': bag.id }, [
+        el('div', { class: 'bag-card-name', text: L.confirmDeleteBag }),
+        el('div', { class: 'bag-card-meta', text: L.confirmDeleteMeta(bag.brews.length) }),
+        el('div', { class: 'bag-card-confirm-actions' }, [
+          el('button', {
+            class: 'bag-card-confirm-delete', type: 'button', text: L.deleteConfirm,
+            onclick: (e) => { e.stopPropagation(); onConfirmDeleteBag(bag.id); }
+          }),
+          el('button', {
+            class: 'bag-card-confirm-keep', type: 'button', text: L.deleteKeep,
+            onclick: (e) => { e.stopPropagation(); onKeepBag(); }
+          })
+        ])
+      ]);
     }
 
     function onNewBag() {
@@ -2336,6 +2398,46 @@
         if (elements.sourceSelect) elements.sourceSelect.value = alt;
       }
       if (typeof convert === 'function') convert();
+    }
+
+    // Bag deletion follows the discard pattern: an in-place confirm replaces
+    // the card, the delete itself is immediate, and the toast's undo window
+    // (one most-recent deletion, in-memory only) is the safety net.
+    let confirmingBagId = null;
+    let lastDeletedBag = null;
+
+    function onDeleteBagClick(bagId) {
+      confirmingBagId = bagId;
+      applyRoute();
+    }
+
+    function onKeepBag() {
+      confirmingBagId = null;
+      applyRoute();
+    }
+
+    function onConfirmDeleteBag(bagId) {
+      const L = logLabels();
+      const { bags } = BrewLog.loadJournal();
+      const index = bags.findIndex(b => b.id === bagId);
+      confirmingBagId = null;
+      if (index === -1) { applyRoute(); return; }
+      const bag = bags[index];
+      bags.splice(index, 1);
+      BrewLog.saveJournal(bags);
+      lastDeletedBag = { bag, index };
+      applyRoute();
+      showToast(L.deletedBagToast(bag.name || L.untitledBag), { actionLabel: L.undo, onAction: onUndoDeleteBag });
+    }
+
+    function onUndoDeleteBag() {
+      if (!lastDeletedBag) return;
+      const { bags } = BrewLog.loadJournal();
+      const index = Math.max(0, Math.min(lastDeletedBag.index, bags.length));
+      bags.splice(index, 0, lastDeletedBag.bag);
+      BrewLog.saveJournal(bags);
+      lastDeletedBag = null;
+      applyRoute();
     }
 
     // Discard is immediate; the toast's undo window (one most-recent discard,
