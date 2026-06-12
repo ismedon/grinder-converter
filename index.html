@@ -240,6 +240,15 @@
     .brew-prose { min-height: 3rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
     .log-editable:focus { outline: none; }
     .log-editable.is-empty::before { content: attr(data-placeholder); color: var(--text-secondary); opacity: 0.55; }
+    /* Native date input dressed as an inline editable; ::before placeholders
+       don't apply to <input>, the browser supplies its own empty-state UI. */
+    input.bag-id-value {
+      appearance: none; -webkit-appearance: none;
+      border: none; background: transparent; padding: 0; border-radius: 0;
+      font-family: var(--font-serif); font-size: inherit; color: inherit;
+      min-height: 1.4em; width: auto; max-width: 12ch;
+    }
+    input.bag-id-value::-webkit-date-and-time-value { text-align: left; }
     .brew-footer-actions { margin-top: 0.75rem; }
     .brew-discard { background: none; border: none; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; }
     .app-toast {
@@ -2071,7 +2080,17 @@
           field('origin', 'bagOrigin', bag.origin)
         ]),
         el('div', { class: 'bag-header-row' }, [
-          field('roastDate', 'bagRoastDate', bag.roastDate),
+          // Native date picker, not contenteditable: mobile keyboards left the
+          // typed text invisible after commit, and roastDate is half of the
+          // bag's natural key so only the picker's ''/ISO output is acceptable.
+          el('div', { class: 'bag-id-field' }, [
+            el('div', { class: 'bag-id-label', text: L.bagRoastDate }),
+            el('input', {
+              type: 'date', class: 'bag-id-value log-editable',
+              'data-scope': 'bag', 'data-field': 'roastDate',
+              value: bag.roastDate || ''
+            })
+          ]),
           field('roastLevel', 'bagRoastLevel', bag.roastLevel),
           field('grinderModel', 'bagGrinderModel', bag.grinderModel)
         ])
@@ -2248,8 +2267,10 @@
       // Prose fields allow line breaks (see onLogKeydown); read via innerText so
       // the browser-inserted block/<br> breaks survive as \n instead of being
       // collapsed by textContent. Single-line fields keep using textContent.
+      const isInput = host.el.tagName === 'INPUT';
       const isProse = host.el.classList && host.el.classList.contains('brew-prose');
-      let newValue = ((isProse ? host.el.innerText : host.el.textContent) || '').trim();
+      let newValue = ((isInput ? host.el.value
+        : isProse ? host.el.innerText : host.el.textContent) || '').trim();
       if (host.el.dataset.type === 'date') {
         const parsed = parseIsoDate(newValue);
         if (!parsed) newValue = (brew && brew.date) || '';
@@ -2257,13 +2278,14 @@
         host.el.textContent = formatLogDate(newValue, currentLang);
       } else {
         // A bag's roastDate is half of its natural identity key, so reject
-        // free-text that isn't a valid ISO date — revert to the stored value
+        // anything that isn't a valid ISO date — revert to the stored value
         // rather than letting garbage split the bag on a later import/merge.
         if (host.scope === 'bag' && path === 'roastDate' && newValue && !parseIsoDate(newValue)) {
           newValue = getPath(targetObj, path) || '';
         }
         setPath(targetObj, path, newValue);
-        host.el.textContent = newValue;
+        if (isInput) host.el.value = newValue;
+        else host.el.textContent = newValue;
       }
       host.el.classList.toggle('is-empty', newValue === '');
       BrewLog.saveJournal(bags);
@@ -2449,6 +2471,10 @@
     if (journalRoot) {
       journalRoot.addEventListener('focusin', onEditableFocus);
       journalRoot.addEventListener('focusout', onEditableBlur);
+      // Mobile date pickers commit via `change` without a reliable focusout
+      // (e.g. iOS wheel dismissed by tapping elsewhere); saving is idempotent
+      // so the eventual focusout doing it again is harmless.
+      journalRoot.addEventListener('change', onEditableBlur);
       journalRoot.addEventListener('click', onLogClick);
     }
     document.addEventListener('keydown', onLogKeydown);

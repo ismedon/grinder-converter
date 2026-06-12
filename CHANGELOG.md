@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.0.4] - 2026-06-12
+
+### Changed
+- **烘焙日期改为日期选择器**：豆袋头部的「烘焙日期」从自由文本（contenteditable）改为原生 `<input type="date">`。移动端手动输入提交后文字不显示的 bug 随自由文本一并消除；选择器只会产出空值或合法 ISO 日期，天然满足自然键 `bagKey(name, roastDate)` 的格式要求。另对 journal 容器补挂 `change` 事件委托——移动端日期滚轮关闭时未必触发 focusout，保存是幂等的，重复触发无害
+
 ## [3.0.3] - 2026-06-12
 
 ### Fixed

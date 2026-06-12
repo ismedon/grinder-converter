@@ -12,3 +12,8 @@
 
 # Reference docs (internal)
 reference/
+
+# Local screenshots & design material (not part of the app)
+app bug/
+design reference/
+screenshot-*.png
