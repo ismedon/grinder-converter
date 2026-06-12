@@ -196,9 +196,23 @@
     .journal-empty-msg { color: var(--text-secondary); font-family: var(--font-serif); }
     .journal-backup-status { color: var(--text-secondary); font-size: 0.8rem; font-family: var(--font-serif); align-self: center; }
     .journal-backup-status.is-stale { color: var(--warning-color); }
-    .bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    /* Single column (the 440px container never fit two anyway): each card wrap
+       owns its bottom margin so a deleted card's height and spacing collapse
+       in one transition, and the cards below slide up to fill the gap. */
+    .bag-list { display: flex; flex-direction: column; }
+    .bag-card-wrap { perspective: 1200px; margin-bottom: 1rem; }
+    .bag-card-wrap:last-child { margin-bottom: 0; }
+    .bag-card-wrap.is-collapsing {
+      overflow: hidden; max-height: 200px;
+      transition: max-height 0.38s ease, opacity 0.3s ease, margin-bottom 0.38s ease, transform 0.38s ease;
+    }
+    .bag-card-wrap.is-collapsed { max-height: 0; opacity: 0; margin-bottom: 0; transform: scale(0.97); }
+    /* Confirm = the card flips over; the back face carries the question. */
+    .bag-card-flip { position: relative; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.33, 1, 0.68, 1); }
+    .bag-card-flip.is-confirming { transform: rotateY(180deg); }
     .bag-card {
       position: relative;
+      -webkit-backface-visibility: hidden; backface-visibility: hidden;
       text-align: left; display: flex; flex-direction: column; gap: 0.4rem;
       padding: 1rem 1.1rem; border-radius: 12px; cursor: pointer;
       border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary);
@@ -218,8 +232,20 @@
     }
     .bag-card:hover .bag-card-delete { opacity: 0.9; }
     .bag-card-delete:hover { color: var(--success-color); background: rgba(196, 92, 60, 0.08); opacity: 1; }
-    .bag-card.is-confirming { border-color: rgba(196, 92, 60, 0.5); cursor: default; }
-    .bag-card.is-confirming:hover { border-color: rgba(196, 92, 60, 0.5); transform: none; }
+    .bag-card-back {
+      position: absolute; inset: 0; box-sizing: border-box;
+      transform: rotateY(180deg);
+      -webkit-backface-visibility: hidden; backface-visibility: hidden;
+      display: flex; flex-direction: column; justify-content: center; gap: 0.4rem;
+      padding: 1rem 1.1rem; border-radius: 12px;
+      border: 1px solid rgba(196, 92, 60, 0.5);
+      background: var(--card-bg); color: var(--text-primary);
+    }
+    /* inert keeps the hidden face unfocusable; pointer-events is the
+       belt-and-braces for browsers without inert */
+    .bag-card-flip .bag-card-back { pointer-events: none; }
+    .bag-card-flip.is-confirming .bag-card-back { pointer-events: auto; }
+    .bag-card-flip.is-confirming .bag-card { pointer-events: none; }
     .bag-card-confirm-actions { display: flex; gap: 1.5rem; align-items: center; margin-top: 0.1rem; }
     .bag-card-confirm-delete, .bag-card-confirm-keep {
       background: none; border: none; padding: 0.3rem 0;
@@ -273,14 +299,24 @@
     .brew-footer-actions { margin-top: 0.75rem; }
     .brew-discard { background: none; border: none; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; }
     .app-toast {
-      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(24px); opacity: 0; pointer-events: none;
+      transition: transform 0.32s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.32s ease;
       display: flex; align-items: center; gap: 1rem; max-width: calc(100vw - 2rem);
-      padding: 0.65rem 1.1rem; border: 1px solid var(--border-color); border-radius: 6px;
+      padding: 0.65rem 1.1rem 0.8rem; border: 1px solid var(--border-color); border-radius: 6px;
       background: var(--card-bg); color: var(--text-primary);
       font-family: var(--font-serif); font-size: 0.9rem;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12); z-index: 100;
+      overflow: hidden; /* keeps the countdown line flush with the bottom edge */
     }
+    .app-toast.is-shown { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
     .app-toast[hidden] { display: none; }
+    .app-toast-countdown {
+      position: absolute; bottom: 0; left: 0; height: 2px; width: 100%;
+      background: rgba(107, 124, 94, 0.45); transform-origin: left;
+      animation: toastCountdown 6s linear forwards;
+    }
+    @keyframes toastCountdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
     .app-toast-action {
       background: none; border: none; padding: 0; color: var(--accent-color);
       font-family: inherit; font-size: inherit; cursor: pointer; white-space: nowrap;
@@ -1875,13 +1911,21 @@
       return node;
     }
 
-    // App-level toast. One at a time — a new toast replaces the current one.
+    // App-level toast. One at a time — a new toast replaces the current one
+    // and restarts its float-in (and countdown line, when it has one).
     let toastTimer = null;
+    let toastShowTimer = null;
+    let toastExitTimer = null;
     function showToast(message, opts) {
       const node = document.getElementById('appToast');
       if (!node) return;
       const o = opts || {};
-      hideToast();
+      const durationMs = typeof o.durationMs === 'number' ? o.durationMs : 8000;
+      if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+      if (toastShowTimer) { clearTimeout(toastShowTimer); toastShowTimer = null; }
+      if (toastExitTimer) { clearTimeout(toastExitTimer); toastExitTimer = null; }
+      clearChildren(node);
+      node.classList.remove('is-shown');
       node.appendChild(el('span', { class: 'app-toast-msg', text: message }));
       if (o.actionLabel && typeof o.onAction === 'function') {
         node.appendChild(el('button', {
@@ -1889,14 +1933,27 @@
           onclick: () => { hideToast(); o.onAction(); }
         }));
       }
+      if (o.countdown) {
+        const line = el('div', { class: 'app-toast-countdown' });
+        line.style.animationDuration = (durationMs / 1000) + 's';
+        node.appendChild(line);
+      }
       node.hidden = false;
-      toastTimer = setTimeout(hideToast, typeof o.durationMs === 'number' ? o.durationMs : 8000);
+      if (prefersReducedMotion()) node.classList.add('is-shown');
+      else toastShowTimer = setTimeout(() => { toastShowTimer = null; node.classList.add('is-shown'); }, 30);
+      toastTimer = setTimeout(hideToast, durationMs);
     }
 
     function hideToast() {
       if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+      if (toastShowTimer) { clearTimeout(toastShowTimer); toastShowTimer = null; }
       const node = document.getElementById('appToast');
-      if (node) { node.hidden = true; clearChildren(node); }
+      if (!node || node.hidden) return;
+      node.classList.remove('is-shown');
+      const finish = () => { node.hidden = true; clearChildren(node); };
+      if (prefersReducedMotion()) { finish(); return; }
+      if (toastExitTimer) clearTimeout(toastExitTimer);
+      toastExitTimer = setTimeout(() => { toastExitTimer = null; finish(); }, 350);
     }
 
     function renderJournal(route) {
@@ -1904,6 +1961,7 @@
       if (!root) return;
       // Confirm state is in-memory only; leaving the dashboard resets it.
       if (route.view !== 'dashboard') confirmingBagId = null;
+      confirmingCard = null; // DOM refs go stale on every re-render
       clearChildren(root);
       const { bags, corrupt } = BrewLog.loadJournal();
 
@@ -1951,21 +2009,23 @@
         return;
       }
 
-      const grid = el('div', { class: 'bag-grid' });
-      for (const bag of bags) grid.appendChild(renderBagCard(bag));
-      shell.appendChild(grid);
+      const list = el('div', { class: 'bag-list' });
+      for (const bag of bags) list.appendChild(renderBagCard(bag));
+      shell.appendChild(list);
       root.appendChild(shell);
     }
 
     function renderBagCard(bag) {
       const L = logLabels();
-      if (bag.id === confirmingBagId) return renderBagConfirmCard(bag);
       const best = BrewLog.bestBrew(bag);
-      // Not a <button>: the delete control inside must be a real <button>,
+      const confirming = bag.id === confirmingBagId;
+      const refs = {};
+
+      // Front: not a <button> — the delete control inside must be a real <button>,
       // and buttons can't nest. role+tabindex+keydown keep it keyboard-reachable.
-      const card = el('div', {
+      const front = el('div', {
         class: 'bag-card' + (bag.status === 'finished' ? ' is-finished' : ''),
-        role: 'button', tabindex: '0', 'data-bag-id': bag.id
+        role: 'button', tabindex: '0'
       }, [
         el('div', { class: 'bag-card-name', text: bag.name || L.untitledBag }),
         el('div', { class: 'bag-card-meta', text: [
@@ -1976,25 +2036,22 @@
         }),
         el('button', {
           class: 'bag-card-delete', type: 'button', text: '×', 'aria-label': L.deleteBag,
-          onclick: (e) => { e.stopPropagation(); onDeleteBagClick(bag.id); }
+          onclick: (e) => { e.stopPropagation(); onDeleteBagClick(bag.id, refs); }
         })
       ]);
-      card.addEventListener('click', () => navigate('#/bag/' + bag.id));
-      card.addEventListener('keydown', (e) => {
+      front.addEventListener('click', () => navigate('#/bag/' + bag.id));
+      front.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('#/bag/' + bag.id); }
       });
-      return card;
-    }
 
-    function renderBagConfirmCard(bag) {
-      const L = logLabels();
-      return el('div', { class: 'bag-card is-confirming', 'data-bag-id': bag.id }, [
+      // Back: the in-place confirm, revealed by flipping the card over.
+      const back = el('div', { class: 'bag-card-back' }, [
         el('div', { class: 'bag-card-name', text: L.confirmDeleteBag }),
         el('div', { class: 'bag-card-meta', text: L.confirmDeleteMeta(bag.brews.length) }),
         el('div', { class: 'bag-card-confirm-actions' }, [
           el('button', {
             class: 'bag-card-confirm-delete', type: 'button', text: L.deleteConfirm,
-            onclick: (e) => { e.stopPropagation(); onConfirmDeleteBag(bag.id); }
+            onclick: (e) => { e.stopPropagation(); onConfirmDeleteBag(bag.id, refs.wrap); }
           }),
           el('button', {
             class: 'bag-card-confirm-keep', type: 'button', text: L.deleteKeep,
@@ -2002,6 +2059,20 @@
           })
         ])
       ]);
+
+      const flip = el('div', { class: 'bag-card-flip' + (confirming ? ' is-confirming' : '') }, [front, back]);
+      const entering = bag.id === enteringBagId;
+      const wrap = el('div', {
+        class: 'bag-card-wrap' + (entering ? ' is-collapsing is-collapsed' : ''),
+        'data-bag-id': bag.id
+      }, [flip]);
+
+      refs.wrap = wrap; refs.flip = flip; refs.front = front; refs.back = back;
+      front.inert = confirming;
+      back.inert = !confirming;
+      if (confirming) confirmingCard = refs;
+      if (entering) enteringWrap = wrap;
+      return wrap;
     }
 
     function onNewBag() {
@@ -2401,33 +2472,65 @@
     }
 
     // Bag deletion follows the discard pattern: an in-place confirm replaces
-    // the card, the delete itself is immediate, and the toast's undo window
-    // (one most-recent deletion, in-memory only) is the safety net.
-    let confirmingBagId = null;
+    // the card (by flipping it over), the delete itself lands once the card's
+    // exit animation ends, and the toast's undo window (one most-recent
+    // deletion, in-memory only) is the safety net.
+    let confirmingBagId = null;  // bag whose card shows the confirm face
+    let confirmingCard = null;   // its live DOM refs { wrap, flip, front, back }
     let lastDeletedBag = null;
+    let enteringBagId = null;    // bag that should mount collapsed (undo return)
+    let enteringWrap = null;
 
-    function onDeleteBagClick(bagId) {
+    function prefersReducedMotion() {
+      return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function setCardFlip(refs, confirming) {
+      refs.flip.classList.toggle('is-confirming', confirming);
+      // inert pulls the hidden face out of tab order and the a11y tree
+      refs.front.inert = confirming;
+      refs.back.inert = !confirming;
+    }
+
+    function onDeleteBagClick(bagId, refs) {
+      // One confirm at a time: a new × flips the previous card back.
+      if (confirmingCard && confirmingCard !== refs) setCardFlip(confirmingCard, false);
       confirmingBagId = bagId;
-      applyRoute();
+      confirmingCard = refs || null;
+      if (refs) setCardFlip(refs, true);
     }
 
     function onKeepBag() {
+      if (confirmingCard) setCardFlip(confirmingCard, false);
       confirmingBagId = null;
-      applyRoute();
+      confirmingCard = null;
     }
 
-    function onConfirmDeleteBag(bagId) {
-      const L = logLabels();
-      const { bags } = BrewLog.loadJournal();
-      const index = bags.findIndex(b => b.id === bagId);
+    function onConfirmDeleteBag(bagId, wrap) {
+      // Flip back toward the front while the card collapses (matches the v2 rhythm).
+      if (confirmingCard && confirmingCard.wrap === wrap) setCardFlip(confirmingCard, false);
       confirmingBagId = null;
-      if (index === -1) { applyRoute(); return; }
-      const bag = bags[index];
-      bags.splice(index, 1);
-      BrewLog.saveJournal(bags);
-      lastDeletedBag = { bag, index };
-      applyRoute();
-      showToast(L.deletedBagToast(bag.name || L.untitledBag), { actionLabel: L.undo, onAction: onUndoDeleteBag });
+      confirmingCard = null;
+      const finish = () => {
+        const L = logLabels();
+        const { bags } = BrewLog.loadJournal();
+        const index = bags.findIndex(b => b.id === bagId);
+        if (index === -1) { applyRoute(); return; }
+        const bag = bags[index];
+        bags.splice(index, 1);
+        BrewLog.saveJournal(bags);
+        lastDeletedBag = { bag, index };
+        applyRoute();
+        showToast(L.deletedBagToast(bag.name || L.untitledBag), {
+          actionLabel: L.undo, onAction: onUndoDeleteBag,
+          durationMs: 6000, countdown: true  // undo window matches the toast's line
+        });
+      };
+      if (!wrap || prefersReducedMotion()) { finish(); return; }
+      // Collapse the card out first; the journal write lands when it's gone.
+      wrap.classList.add('is-collapsing');
+      setTimeout(() => wrap.classList.add('is-collapsed'), 20);
+      setTimeout(finish, 400);
     }
 
     function onUndoDeleteBag() {
@@ -2436,8 +2539,19 @@
       const index = Math.max(0, Math.min(lastDeletedBag.index, bags.length));
       bags.splice(index, 0, lastDeletedBag.bag);
       BrewLog.saveJournal(bags);
+      const bagId = lastDeletedBag.bag.id;
       lastDeletedBag = null;
+      if (prefersReducedMotion()) { applyRoute(); return; }
+      // Mount the card collapsed, then let it expand back into its old spot.
+      enteringBagId = bagId;
+      enteringWrap = null;
       applyRoute();
+      enteringBagId = null;
+      const wrap = enteringWrap;
+      enteringWrap = null;
+      if (!wrap) return;
+      setTimeout(() => wrap.classList.remove('is-collapsed'), 40);
+      setTimeout(() => wrap.classList.remove('is-collapsing'), 540);
     }
 
     // Discard is immediate; the toast's undo window (one most-recent discard,

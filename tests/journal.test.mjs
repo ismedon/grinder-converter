@@ -534,3 +534,37 @@ test("discard then undo roundtrip leaves the journal unchanged", () => {
   ctx.restoreBrewToBags(bags, bag.id, removed.brew, removed.index);
   assert.equal(JSON.stringify(bags), before);
 });
+
+// ── delete bag: confirm handler + undo ──
+
+function seedThreeBags(ctx) {
+  const mk = (id, name, roastDate) => ctx.BrewLog.createBag({ id, name, roastDate });
+  ctx.BrewLog.saveJournal([
+    mk("bag_a", "A", "2026-01-01"),
+    mk("bag_b", "B", "2026-01-02"),
+    mk("bag_c", "C", "2026-01-03"),
+  ]);
+}
+
+test("onConfirmDeleteBag without a card element deletes immediately; undo restores the original index", () => {
+  const ctx = loadContext({ localStorage: makeLocalStorage() });
+  seedThreeBags(ctx);
+  ctx.onConfirmDeleteBag("bag_b");
+  // joined ids, not deepEqual: VM-realm arrays false-fail strict deepEqual
+  assert.equal(ctx.BrewLog.loadJournal().bags.map((b) => b.id).join(","), "bag_a,bag_c");
+  ctx.onUndoDeleteBag();
+  assert.equal(ctx.BrewLog.loadJournal().bags.map((b) => b.id).join(","), "bag_a,bag_b,bag_c");
+  ctx.hideToast(); // drop the auto-hide timer so the test process exits promptly
+});
+
+test("onConfirmDeleteBag with a card element defers the journal write until the exit animation ends", async () => {
+  const ctx = loadContext({ localStorage: makeLocalStorage() });
+  seedThreeBags(ctx);
+  const wrap = makeElementStub();
+  ctx.onConfirmDeleteBag("bag_b", wrap);
+  assert.equal(ctx.BrewLog.loadJournal().bags.length, 3,
+    "bag must still be in storage while the card is animating out");
+  await new Promise((r) => setTimeout(r, 500)); // exit transition is ~0.38s; data writes at ~400ms
+  assert.equal(ctx.BrewLog.loadJournal().bags.map((b) => b.id).join(","), "bag_a,bag_c");
+  ctx.hideToast();
+});
