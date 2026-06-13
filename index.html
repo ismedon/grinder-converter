@@ -63,6 +63,7 @@
       --ring-fill: radial-gradient(circle at 36% 30%, rgba(111, 78, 55, 0.34), rgba(111, 78, 55, 0.6));
       --stamp: rgba(160, 106, 82, 0.48);
       --card-finished: #f6f2ea;
+      --grip: #c9c0b2;
     }
 
     * {
@@ -230,7 +231,7 @@
       position: relative;
       -webkit-backface-visibility: hidden; backface-visibility: hidden;
       text-align: left; display: flex; flex-direction: column; gap: 0.4rem;
-      padding: 1rem 1.1rem; border-radius: 12px; cursor: pointer;
+      padding: 1rem 1.1rem 1rem 2.3rem; border-radius: 12px; cursor: pointer;
       border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary);
       transition: border-color 0.18s ease, transform 0.18s ease;
     }
@@ -251,6 +252,17 @@
     .bag-card-stats { font-size: 0.82rem; color: var(--accent-color); }
     /* ── v4 info layer: meta row, best bar, trend row ───────────────── */
     .bag-card { gap: 0.5rem; }
+    /* Drag handle — the only drag initiator. Card body padding-left makes room. */
+    .bag-grip {
+      position: absolute; left: 0.3rem; top: 0; bottom: 0; width: 1.6rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: grab; touch-action: none; z-index: 4; color: var(--grip);
+      transition: color 0.18s ease;
+    }
+    .bag-grip:active { cursor: grabbing; }
+    .bag-grip:hover { color: var(--mute); }
+    .bag-grip-dots { display: grid; grid-template-columns: 3px 3px; gap: 3px; }
+    .bag-grip-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
     .bag-card-meta-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
     /* Origin as a dashed, stamp-like corner tag. */
     .bag-origin {
@@ -786,6 +798,7 @@
         --ring-fill: radial-gradient(circle at 36% 30%, rgba(214, 180, 140, 0.5), rgba(196, 158, 116, 0.82));
         --stamp: rgba(196, 150, 116, 0.55);
         --card-finished: #28231f;
+        --grip: #5f574d;
       }
 
       .grinder-select {
@@ -1843,6 +1856,7 @@
         bestLabel: '最佳', roastedPrefix: '烘焙',
         freshness: { resting: '养豆中', peak: '赏味期', late: '赏味后期', fading: '风味渐弱', finished: '已喝完' },
         trend: { rising: '渐入佳境', falling: '近来回落', stable: '趋于稳定', tuning: '调试中' },
+        sortFreshness: '⇅ 赏味期排序', sortFreshnessHint: '按赏味期由佳到弱排序', dragSort: '拖动排序',
         bagName: '名称', bagOrigin: '产地', bagRoastDate: '烘焙日期',
         bagRoastLevel: '烘焙度', bagGrinderModel: '磨豆机',
         brewGrindSetting: '刻度', translateGrind: '换算 ⇄',
@@ -1880,6 +1894,7 @@
         bestLabel: 'Best', roastedPrefix: 'roasted',
         freshness: { resting: 'resting', peak: 'peak', late: 'late peak', fading: 'fading', finished: 'finished' },
         trend: { rising: 'dialing in', falling: 'slipping', stable: 'steady', tuning: 'tuning' },
+        sortFreshness: '⇅ Sort by freshness', sortFreshnessHint: 'Sort by taste window, best first', dragSort: 'Drag to reorder',
         bagName: 'name', bagOrigin: 'origin', bagRoastDate: 'roast date',
         bagRoastLevel: 'roast', bagGrinderModel: 'grinder',
         brewGrindSetting: 'grind', translateGrind: 'convert ⇄',
@@ -2013,6 +2028,41 @@
       const ys = v => H - p - (Math.max(min, Math.min(max, v)) - min) / (max - min) * (H - 2 * p);
       const d = series.map((v, i) => (i ? 'L' : 'M') + xs(i).toFixed(1) + ' ' + ys(v).toFixed(1)).join(' ');
       return { d, x: xs(n - 1), y: ys(series[n - 1]) };
+    }
+
+    // ── v4 drag reorder + one-click taste-window sort ────────────────
+    // Sort priority for "赏味期排序": peak first, then late peak, resting,
+    // fading (and roast-date-less bags), finished last. nowMs is injectable.
+    function freshRank(bag, nowMs) {
+      if (bag && bag.status === 'finished') return 4;
+      const days = relativeDays(bag && bag.roastDate, nowMs);
+      if (days == null) return 3;
+      if (days >= 7 && days <= 28) return 0;
+      if (days > 28 && days <= 42) return 1;
+      if (days < 7) return 2;
+      return 3;
+    }
+
+    // Stable taste-window sort: rank, then ascending age. Returns a new array.
+    function sortBagsByFreshness(bags, nowMs) {
+      return (bags || []).slice().sort((a, b) => {
+        const ra = freshRank(a, nowMs), rb = freshRank(b, nowMs);
+        if (ra !== rb) return ra - rb;
+        const da = relativeDays(a && a.roastDate, nowMs);
+        const db = relativeDays(b && b.roastDate, nowMs);
+        return (da == null ? Infinity : da) - (db == null ? Infinity : db);
+      });
+    }
+
+    // Drop slot = how many OTHER cards have their midpoint above the dragged
+    // card's current center. Pure so the index math is unit-testable.
+    function computeDropIndex(rects, fromIndex, centerY) {
+      let count = 0;
+      for (let i = 0; i < rects.length; i++) {
+        if (i === fromIndex) continue;
+        if (rects[i].top + rects[i].h / 2 < centerY) count++;
+      }
+      return count;
     }
 
     // Pure helpers behind discard-undo: mutate `bags` in place so callers can
@@ -2156,7 +2206,11 @@
 
       shell.appendChild(el('div', { class: 'journal-toolbar' }, [
         el('div', { class: 'journal-toolbar-group' }, [
-          el('button', { class: 'journal-btn primary', type: 'button', text: L.newBag, onclick: onNewBag })
+          el('button', { class: 'journal-btn primary', type: 'button', text: L.newBag, onclick: onNewBag }),
+          bags.length >= 2 ? el('button', {
+            class: 'journal-btn', type: 'button', text: L.sortFreshness,
+            title: L.sortFreshnessHint, onclick: onSortFreshness
+          }) : null
         ]),
         el('div', { class: 'journal-toolbar-group' }, [
           el('span', { class: 'journal-backup-status' + (stale ? ' is-stale' : ''), text: backupText }),
@@ -2177,6 +2231,7 @@
       }
 
       const list = el('div', { class: 'bag-list' });
+      cardWraps = {}; // stale refs from the prior render are gone now
       for (const bag of bags) list.appendChild(renderBagCard(bag));
       shell.appendChild(list);
       root.appendChild(shell);
@@ -2260,6 +2315,7 @@
         class: 'bag-card' + (finished ? ' is-finished' : ''),
         role: 'button', tabindex: '0'
       }, [
+        gripHandle(bag.id),
         el('div', { class: 'bag-card-name', text: bag.name || L.untitledBag }),
         el('div', { class: 'bag-card-meta-row' }, [
           bag.origin ? el('span', { class: 'bag-origin', text: bag.origin }) : null,
@@ -2315,6 +2371,7 @@
       back.inert = !confirming;
       if (confirming) confirmingCard = refs;
       if (entering) enteringWrap = wrap;
+      cardWraps[bag.id] = wrap; // live ref for drag transforms + FLIP
       return wrap;
     }
 
@@ -2726,6 +2783,184 @@
 
     function prefersReducedMotion() {
       return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    // ── Drag-to-reorder (Pointer Events, FLIP landing) ───────────────
+    // Only the left grip starts a drag — clicking the card body / × / confirm
+    // never does (zero conflict). Live wrap elements are tracked by bag id so
+    // the drag can transform them directly and FLIP them on drop.
+    let cardWraps = {};          // bag id → its .bag-card-wrap (this render)
+    let dragState = null;        // { id, order, fromIndex, toIndex, startY, deltaY, rects, dragH }
+
+    function isDarkNow() {
+      return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function liftShadow() {
+      return isDarkNow() ? '0 16px 38px rgba(0,0,0,0.5)' : '0 14px 34px rgba(45,42,38,0.22)';
+    }
+
+    function gripHandle(bagId) {
+      const L = logLabels();
+      const dots = [];
+      for (let i = 0; i < 6; i++) dots.push(el('span', { class: 'bag-grip-dot' }));
+      const grip = el('div', {
+        class: 'bag-grip', role: 'button', tabindex: '-1', 'aria-label': L.dragSort,
+        onpointerdown: (e) => onGripPointerDown(bagId, e),
+        // a press-release on the grip with no drag must not fall through to the
+        // card's navigate-on-click handler
+        onclick: (e) => { e.stopPropagation(); }
+      }, [el('span', { class: 'bag-grip-dots' }, dots)]);
+      return grip;
+    }
+
+    function snapshotCardTops() {
+      const tops = {};
+      const root = document.getElementById('journalView');
+      if (!root || !root.querySelectorAll) return tops;
+      root.querySelectorAll('.bag-card-wrap[data-bag-id]').forEach(w => {
+        if (w.getBoundingClientRect) tops[w.getAttribute('data-bag-id')] = w.getBoundingClientRect().top;
+      });
+      return tops;
+    }
+
+    function applyDragTransforms() {
+      const d = dragState;
+      if (!d) return;
+      const S = d.dragH + 16; // card height + the 1rem inter-card gap
+      const lift = liftShadow();
+      d.order.forEach((id, i) => {
+        const w = cardWraps[id];
+        if (!w || !w.style) return;
+        w.style.pointerEvents = 'none';
+        if (i === d.fromIndex) {
+          w.style.transition = 'none';
+          w.style.transform = 'translateY(' + d.deltaY + 'px) scale(1.03)';
+          w.style.zIndex = '30';
+          w.style.boxShadow = lift;
+          w.style.willChange = 'transform';
+        } else {
+          let t = 0;
+          if (d.toIndex > d.fromIndex && i > d.fromIndex && i <= d.toIndex) t = -S;
+          else if (d.toIndex < d.fromIndex && i >= d.toIndex && i < d.fromIndex) t = S;
+          w.style.transition = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
+          w.style.transform = 'translateY(' + t + 'px)';
+          w.style.zIndex = '';
+          w.style.boxShadow = '';
+          w.style.willChange = '';
+        }
+      });
+    }
+
+    // FLIP: cards were just re-rendered into their new order. prevTops holds
+    // each card's pre-reorder *visual* top (drag shifts included), so the delta
+    // is measured against the clean final layout — no single-frame snap-back.
+    function flipCards(prevTops, draggedId) {
+      const root = document.getElementById('journalView');
+      if (!root || !root.querySelectorAll) return;
+      const wraps = Array.prototype.slice.call(root.querySelectorAll('.bag-card-wrap[data-bag-id]'));
+      // 1) strip any residual transform, force one reflow, then measure clean tops
+      wraps.forEach(w => { w.style.transition = 'none'; w.style.transform = 'none'; w.style.boxShadow = ''; });
+      if (wraps[0] && wraps[0].offsetHeight != null) void wraps[0].offsetHeight;
+      const lift = liftShadow();
+      wraps.forEach(w => {
+        const id = w.getAttribute('data-bag-id');
+        const prev = prevTops[id];
+        w.style.transition = '';
+        w.style.transform = '';
+        w.style.willChange = '';
+        if (prev == null || typeof w.animate !== 'function' || !w.getBoundingClientRect) return;
+        const dy = prev - w.getBoundingClientRect().top;
+        const isDragged = id === draggedId;
+        if (Math.abs(dy) < 0.5 && !isDragged) return;
+        const flat = '0 0px 0px rgba(0,0,0,0)';
+        const frames = isDragged
+          ? [ { transform: 'translateY(' + dy + 'px) scale(1.035)', boxShadow: lift, zIndex: 30, offset: 0 },
+              { transform: 'translateY(' + (dy * 0.18) + 'px) scale(1.014)', boxShadow: lift, zIndex: 30, offset: 0.5 },
+              { transform: 'translateY(0px) scale(1)', boxShadow: flat, zIndex: 30, offset: 0.999 },
+              { transform: 'translateY(0px) scale(1)', boxShadow: flat, zIndex: 1, offset: 1 } ]
+          : [ { transform: 'translateY(' + dy + 'px)' }, { transform: 'translateY(0px)' } ];
+        w.animate(frames, {
+          duration: isDragged ? 620 : 520,
+          easing: isDragged ? 'cubic-bezier(0.16, 1, 0.3, 1)' : 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'none'
+        });
+      });
+    }
+
+    function removeDragListeners() {
+      if (typeof window === 'undefined') return;
+      window.removeEventListener('pointermove', onDragMove);
+      window.removeEventListener('pointerup', onDragUp);
+      window.removeEventListener('pointercancel', onDragUp);
+    }
+
+    function onGripPointerDown(bagId, e) {
+      if (e && e.button != null && e.button !== 0) return; // primary button only
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const { bags } = BrewLog.loadJournal();
+      const order = bags.map(b => b.id);
+      const fromIndex = order.indexOf(bagId);
+      if (fromIndex === -1 || order.length < 2) return;
+      const rects = order.map(id => {
+        const w = cardWraps[id];
+        const r = (w && w.getBoundingClientRect) ? w.getBoundingClientRect() : { top: 0, height: 0 };
+        return { top: r.top, h: r.height };
+      });
+      // a drag cancels any open delete-confirm flip
+      if (confirmingCard) { setCardFlip(confirmingCard, false); }
+      confirmingBagId = null; confirmingCard = null;
+      dragState = { id: bagId, order, fromIndex, toIndex: fromIndex,
+        startY: e.clientY, deltaY: 0, rects, dragH: rects[fromIndex].h };
+      applyDragTransforms();
+      if (typeof window !== 'undefined') {
+        window.addEventListener('pointermove', onDragMove, { passive: false });
+        window.addEventListener('pointerup', onDragUp);
+        window.addEventListener('pointercancel', onDragUp);
+      }
+    }
+
+    function onDragMove(e) {
+      const d = dragState;
+      if (!d) return;
+      if (e.cancelable) e.preventDefault();
+      const deltaY = e.clientY - d.startY;
+      const center = d.rects[d.fromIndex].top + d.rects[d.fromIndex].h / 2 + deltaY;
+      const toIndex = computeDropIndex(d.rects, d.fromIndex, center);
+      if (deltaY !== d.deltaY || toIndex !== d.toIndex) {
+        d.deltaY = deltaY; d.toIndex = toIndex;
+        applyDragTransforms();
+      }
+    }
+
+    function onDragUp() {
+      removeDragListeners();
+      const d = dragState;
+      dragState = null;
+      if (!d) return;
+      const order = d.order.slice();
+      const moved = order.splice(d.fromIndex, 1)[0];
+      order.splice(d.toIndex, 0, moved);
+      const { bags } = BrewLog.loadJournal();
+      const byId = {};
+      bags.forEach(b => { byId[b.id] = b; });
+      const newBags = order.map(id => byId[id]).filter(Boolean);
+      bags.forEach(b => { if (order.indexOf(b.id) === -1) newBags.push(b); });
+      // Snapshot BEFORE the write/re-render so FLIP starts from the dragged-out
+      // visual positions, then land the cards from there.
+      const prevTops = snapshotCardTops();
+      BrewLog.saveJournal(newBags);
+      applyRoute();
+      if (!prefersReducedMotion()) flipCards(prevTops, d.id);
+    }
+
+    // Toolbar "赏味期排序": same FLIP landing, no single lifted card.
+    function onSortFreshness() {
+      const { bags } = BrewLog.loadJournal();
+      if (bags.length < 2) return;
+      const prevTops = snapshotCardTops();
+      BrewLog.saveJournal(sortBagsByFreshness(bags));
+      applyRoute();
+      if (!prefersReducedMotion()) flipCards(prevTops, null);
     }
 
     function setCardFlip(refs, confirming) {
