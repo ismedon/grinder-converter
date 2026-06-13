@@ -9,6 +9,7 @@ function makeElementStub() {
     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
     setAttribute() {},
     getAttribute() { return null; },
+    removeAttribute() {},
     addEventListener() {},
     removeEventListener() {},
     appendChild() {},
@@ -45,7 +46,7 @@ function loadContext({ localStorage } = {}) {
 
   const elementCache = new Map();
   const documentStub = {
-    documentElement: { lang: "zh-CN" },
+    documentElement: Object.assign(makeElementStub(), { lang: "zh-CN" }),
     body: makeElementStub(),
     getElementById(id) {
       if (!elementCache.has(id)) elementCache.set(id, makeElementStub());
