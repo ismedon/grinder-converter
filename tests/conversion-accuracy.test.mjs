@@ -48,6 +48,9 @@ function loadConverterContext() {
     createElement() {
       return makeElementStub();
     },
+    createElementNS() {
+      return makeElementStub();
+    },
     addEventListener() {},
     removeEventListener() {},
   };
