@@ -57,6 +57,12 @@
       --mute: #8a7d6a;  --mute-bg: rgba(168, 155, 134, 0.14);
       --spark-base: rgba(45, 42, 38, 0.07);
       --best-bg: #f1ede3;
+      /* texture: coffee-ring rating, finished stamp, softened finished card */
+      --ring-on: rgba(111, 78, 55, 0.5);
+      --ring-off: rgba(111, 78, 55, 0.2);
+      --ring-fill: radial-gradient(circle at 36% 30%, rgba(111, 78, 55, 0.34), rgba(111, 78, 55, 0.6));
+      --stamp: rgba(160, 106, 82, 0.48);
+      --card-finished: #f6f2ea;
     }
 
     * {
@@ -229,14 +235,29 @@
       transition: border-color 0.18s ease, transform 0.18s ease;
     }
     .bag-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
-    .bag-card.is-finished { opacity: 0.6; }
+    /* Finished bags read via a tilted stamp + softened surface, not a flat fade. */
+    .bag-card.is-finished { background: var(--card-finished); }
+    .bag-card.is-finished .bag-card-name { color: var(--mute); }
+    .bag-finished-stamp {
+      position: absolute; top: 48%; right: 1.1rem;
+      transform: translateY(-50%) rotate(-11deg);
+      border: 2px double var(--stamp); color: var(--stamp);
+      border-radius: 6px; padding: 2px 10px;
+      font-family: var(--font-serif); font-size: 0.92rem; font-weight: 600;
+      letter-spacing: 0.14em; pointer-events: none; z-index: 2;
+    }
     .bag-card-name { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; padding-right: 1.7rem; }
     .bag-card-meta { font-size: 0.82rem; color: var(--text-secondary); }
     .bag-card-stats { font-size: 0.82rem; color: var(--accent-color); }
     /* ── v4 info layer: meta row, best bar, trend row ───────────────── */
     .bag-card { gap: 0.5rem; }
     .bag-card-meta-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
-    .bag-origin { font-size: 0.72rem; color: var(--text-secondary); white-space: nowrap; }
+    /* Origin as a dashed, stamp-like corner tag. */
+    .bag-origin {
+      font-size: 0.66rem; letter-spacing: 0.1em; color: var(--mute);
+      border: 1px dashed var(--mute); border-radius: 3px; padding: 1px 6px;
+      white-space: nowrap; opacity: 0.85;
+    }
     .bag-submeta { font-size: 0.76rem; color: var(--text-secondary); white-space: nowrap; }
     .bag-fresh-badge {
       font-size: 0.66rem; font-weight: 600; letter-spacing: 0.04em;
@@ -255,7 +276,14 @@
       font-family: var(--font-serif); font-size: 0.74rem; color: var(--sage);
       letter-spacing: 0.06em; white-space: nowrap;
     }
-    .bag-best-rating { font-size: 0.7rem; letter-spacing: 0.12em; color: var(--clay); white-space: nowrap; }
+    /* Coffee-ring rating pips: filled ones carry an off-centre radial "stain". */
+    .bag-rings { display: inline-flex; gap: 4px; align-items: center; flex-shrink: 0; }
+    .bag-ring {
+      width: var(--ring-size, 9px); height: var(--ring-size, 9px);
+      border-radius: 50%; box-sizing: border-box; display: inline-block;
+      border: 1px solid var(--ring-off); background: transparent;
+    }
+    .bag-ring.is-on { border-color: var(--ring-on); background: var(--ring-fill); }
     .bag-best-recipe { font-size: 0.76rem; color: var(--text-secondary); white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis; }
     .bag-card-stats-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
@@ -753,6 +781,11 @@
         --mute: #9a8d79;  --mute-bg: rgba(154, 141, 121, 0.16);
         --spark-base: rgba(232, 224, 212, 0.12);
         --best-bg: #34302a;
+        --ring-on: rgba(214, 180, 140, 0.6);
+        --ring-off: rgba(214, 180, 140, 0.22);
+        --ring-fill: radial-gradient(circle at 36% 30%, rgba(214, 180, 140, 0.5), rgba(196, 158, 116, 0.82));
+        --stamp: rgba(196, 150, 116, 0.55);
+        --card-finished: #28231f;
       }
 
       .grinder-select {
@@ -2184,18 +2217,28 @@
       ]);
     }
 
+    // Five coffee-ring pips; the first `rating` are "filled" (stained).
+    function ratingRings(rating, size) {
+      const r = Math.max(0, Math.min(5, Number(rating) || 0));
+      const pips = [];
+      for (let i = 0; i < 5; i++) {
+        pips.push(el('span', { class: 'bag-ring' + (i < r ? ' is-on' : '') }));
+      }
+      return el('span', {
+        class: 'bag-rings', 'aria-label': r + '/5',
+        style: '--ring-size:' + (size || 9) + 'px'
+      }, pips);
+    }
+
     // "Best so far" bar: rating + the recipe that earned it, pinned to the card
-    // so the target reads before opening the bag. (Rating is stars here; the
-    // texture pass swaps in coffee-ring pips.)
+    // so the target reads before opening the bag.
     function bestBar(bag, best) {
       if (!best) return null;
       const L = logLabels();
-      const r = Math.max(0, Math.min(5, Number(best.rating) || 0));
       const recipe = bestRecipeString(bag, best);
       const children = [
         el('span', { class: 'bag-best-label', text: L.bestLabel }),
-        el('span', { class: 'bag-best-rating', 'aria-label': r + '/5',
-          text: '✦'.repeat(r) + '✧'.repeat(5 - r) })
+        ratingRings(best.rating, 9)
       ];
       if (recipe) children.push(el('span', { class: 'bag-best-recipe', text: recipe }));
       return el('div', { class: 'bag-best' }, children);
@@ -2235,7 +2278,9 @@
         el('button', {
           class: 'bag-card-delete', type: 'button', text: '×', 'aria-label': L.deleteBag,
           onclick: (e) => { e.stopPropagation(); onDeleteBagClick(bag.id, refs); }
-        })
+        }),
+        finished ? el('div', { class: 'bag-finished-stamp', 'aria-hidden': 'true',
+          text: L.freshness.finished }) : null
       ]);
       front.addEventListener('click', () => navigate('#/bag/' + bag.id));
       front.addEventListener('keydown', (e) => {
