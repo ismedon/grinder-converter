@@ -636,3 +636,47 @@ test("sparklinePath maps a series to an SVG path and an end point", () => {
   const one = ctx.sparklinePath([4], 70, 22, 3);
   assert.equal(Math.round(one.x), 35);
 });
+
+// ── v4 drag reorder + one-click taste-window sort ───────────────────
+const NOW = Date.UTC(2026, 5, 13); // 2026-06-13, fixed so day-math is stable
+
+test("freshRank orders bags peak→late→resting→fading→finished", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.freshRank({ roastDate: "2026-05-26" }, NOW), 0, "18d → peak");
+  assert.equal(ctx.freshRank({ roastDate: "2026-05-12" }, NOW), 1, "32d → late peak");
+  assert.equal(ctx.freshRank({ roastDate: "2026-06-09" }, NOW), 2, "4d → resting");
+  assert.equal(ctx.freshRank({ roastDate: "2026-05-01" }, NOW), 3, "43d → fading");
+  assert.equal(ctx.freshRank({ roastDate: "", status: "finished" }, NOW), 4);
+  assert.equal(ctx.freshRank({ roastDate: "" }, NOW), 3, "no roast date sorts with fading");
+});
+
+test("sortBagsByFreshness sorts by rank then ascending age, leaving input intact", () => {
+  const ctx = loadContext();
+  const bags = [
+    { id: "fade", roastDate: "2026-05-01" },              // rank 3
+    { id: "done", roastDate: "2026-05-26", status: "finished" }, // rank 4
+    { id: "peakOld", roastDate: "2026-05-20" },           // rank 0, 24d
+    { id: "rest", roastDate: "2026-06-09" },              // rank 2
+    { id: "peakNew", roastDate: "2026-05-26" },           // rank 0, 18d
+  ];
+  const out = ctx.sortBagsByFreshness(bags, NOW);
+  // peak (older within peak first → larger days first? no: ascending age = fewer days first)
+  assert.equal(out.map((b) => b.id).join(","), "peakNew,peakOld,rest,fade,done");
+  assert.equal(bags[0].id, "fade", "original array not mutated");
+});
+
+test("computeDropIndex counts other cards whose midpoint is above the drag center", () => {
+  const ctx = loadContext();
+  // three 100px cards stacked with 16px gaps: tops 0,116,232
+  const rects = [
+    { top: 0, h: 100 },
+    { top: 116, h: 100 },
+    { top: 232, h: 100 },
+  ];
+  // dragging card 0 (mid 50) — center just past card1's mid (166)
+  assert.equal(ctx.computeDropIndex(rects, 0, 170), 1);
+  // past card2's mid (282) too
+  assert.equal(ctx.computeDropIndex(rects, 0, 300), 2);
+  // barely moved → stays put
+  assert.equal(ctx.computeDropIndex(rects, 0, 40), 0);
+});
