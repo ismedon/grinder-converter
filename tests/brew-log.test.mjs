@@ -54,6 +54,7 @@ function loadContext({ localStorage } = {}) {
     querySelector() { return makeElementStub(); },
     querySelectorAll() { return []; },
     createElement() { return makeElementStub(); },
+    createElementNS() { return makeElementStub(); },
     addEventListener() {},
     removeEventListener() {},
   };

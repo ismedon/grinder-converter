@@ -44,6 +44,7 @@ function loadContext({ localStorage } = {}) {
     querySelector() { return makeElementStub(); },
     querySelectorAll() { return []; },
     createElement() { return makeElementStub(); },
+    createElementNS() { return makeElementStub(); },
     addEventListener() {}, removeEventListener() {},
   };
   const context = { document: documentStub, console, setTimeout, clearTimeout };
@@ -567,4 +568,71 @@ test("onConfirmDeleteBag with a card element defers the journal write until the 
   await new Promise((r) => setTimeout(r, 500)); // exit transition is ~0.38s; data writes at ~400ms
   assert.equal(ctx.BrewLog.loadJournal().bags.map((b) => b.id).join(","), "bag_a,bag_c");
   ctx.hideToast();
+});
+
+// ── v4 info layer: card-derived display helpers ─────────────────────
+// Pure functions behind the sparkline / freshness badge / best-recipe bar.
+
+test("bagSeries returns ratings oldest-first, dropping unrated brews", () => {
+  const ctx = loadContext();
+  const bag = {
+    brews: [
+      { id: "c", createdAt: "2026-05-03T00:00:00Z", rating: 5 },
+      { id: "b", createdAt: "2026-05-02T00:00:00Z", rating: 0 }, // unrated → dropped
+      { id: "a", createdAt: "2026-05-01T00:00:00Z", rating: 3 },
+    ],
+  };
+  assert.equal(ctx.bagSeries(bag).join(","), "3,5");
+  assert.equal(ctx.bagSeries({ brews: [] }).join(","), "");
+  assert.equal(ctx.bagSeries(null).join(","), "");
+  // ratings are clamped into 1..5
+  assert.equal(ctx.bagSeries({ brews: [{ id: "x", rating: 9 }] }).join(","), "5");
+});
+
+test("bagTrend classifies by head/tail third mean difference", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.bagTrend([3, 4, 5]), "tuning", "fewer than 4 points");
+  assert.equal(ctx.bagTrend([2, 2, 3, 3, 4, 3, 4]), "rising");
+  assert.equal(ctx.bagTrend([5, 5, 4, 3, 2, 2]), "falling");
+  assert.equal(ctx.bagTrend([3, 3, 3, 3]), "stable");
+});
+
+test("bagFreshness maps roast-age days (and finished) to a tier key", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.bagFreshness(5, false), "resting");
+  assert.equal(ctx.bagFreshness(7, false), "peak");
+  assert.equal(ctx.bagFreshness(28, false), "peak");
+  assert.equal(ctx.bagFreshness(29, false), "late");
+  assert.equal(ctx.bagFreshness(42, false), "late");
+  assert.equal(ctx.bagFreshness(43, false), "fading");
+  assert.equal(ctx.bagFreshness(3, true), "finished", "finished overrides age");
+  assert.equal(ctx.bagFreshness(null, false), null, "no roast date → no badge");
+});
+
+test("bestRecipeString composes grinder + ratio, skipping missing parts", () => {
+  const ctx = loadContext();
+  assert.equal(
+    ctx.bestRecipeString({ grinderModel: "C40" }, { grinderSetting: "24", brew: { dose: "15", yield: "225" } }),
+    "C40 24 · 1:15"
+  );
+  assert.equal(
+    ctx.bestRecipeString({ grinderModel: "" }, { grinderSetting: "K75", brew: { dose: "", yield: "" } }),
+    "K75"
+  );
+  assert.equal(
+    ctx.bestRecipeString({ grinderModel: "C40" }, { grinderSetting: "", brew: { dose: "16", yield: "256" } }),
+    "C40 · 1:16"
+  );
+  assert.equal(ctx.bestRecipeString({ grinderModel: "C40" }, null), "");
+});
+
+test("sparklinePath maps a series to an SVG path and an end point", () => {
+  const ctx = loadContext();
+  const r = ctx.sparklinePath([1, 5], 70, 22, 3);
+  assert.equal(r.d, "M3.0 19.0 L67.0 3.0");
+  assert.equal(Math.round(r.x), 67);
+  assert.equal(Math.round(r.y), 3);
+  // a single point is centered horizontally
+  const one = ctx.sparklinePath([4], 70, 22, 3);
+  assert.equal(Math.round(one.x), 35);
 });
