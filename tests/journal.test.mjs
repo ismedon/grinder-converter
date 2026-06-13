@@ -9,7 +9,7 @@ function makeElementStub() {
   return {
     style: {},
     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
-    setAttribute() {}, getAttribute() { return null; },
+    setAttribute() {}, getAttribute() { return null; }, removeAttribute() {},
     addEventListener() {}, removeEventListener() {}, appendChild() {},
     textContent: "", innerHTML: "", value: "", hidden: false, dataset: {},
   };
@@ -35,7 +35,7 @@ function loadContext({ localStorage } = {}) {
   assert.ok(scriptMatch, "Failed to extract inline script from index.html");
   const elementCache = new Map();
   const documentStub = {
-    documentElement: { lang: "zh-CN" },
+    documentElement: Object.assign(makeElementStub(), { lang: "zh-CN" }),
     body: makeElementStub(),
     getElementById(id) {
       if (!elementCache.has(id)) elementCache.set(id, makeElementStub());
@@ -679,4 +679,13 @@ test("computeDropIndex counts other cards whose midpoint is above the drag cente
   assert.equal(ctx.computeDropIndex(rects, 0, 300), 2);
   // barely moved → stays put
   assert.equal(ctx.computeDropIndex(rects, 0, 40), 0);
+});
+
+// ── v4 dark mode: theme resolution ──────────────────────────────────
+test("resolveEffectiveDark: manual override wins, else follow system", () => {
+  const ctx = loadContext();
+  assert.equal(ctx.resolveEffectiveDark(null, true), true, "no manual pref → follow system (dark)");
+  assert.equal(ctx.resolveEffectiveDark(null, false), false, "no manual pref → follow system (light)");
+  assert.equal(ctx.resolveEffectiveDark(true, false), true, "manual dark overrides light system");
+  assert.equal(ctx.resolveEffectiveDark(false, true), false, "manual light overrides dark system");
 });

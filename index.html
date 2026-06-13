@@ -137,6 +137,19 @@
       border-bottom: none;
     }
 
+    /* Theme toggle (☾/☀) */
+    .theme-sep {
+      width: 1px; height: 16px; background: var(--border-color); margin: 0 4px;
+    }
+    .theme-toggle {
+      width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; border: 1px solid var(--border-color); background: var(--card-bg);
+      color: var(--text-secondary); font-size: 1rem; line-height: 1; cursor: pointer; padding: 0;
+      transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+    }
+    .theme-toggle:hover { border-color: var(--accent-color); color: var(--text-primary); }
+    .theme-toggle:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+
     /* Header */
     .header {
       text-align: center;
@@ -774,9 +787,15 @@
       border: none;
     }
 
-    /* 深色模式 */
+    /* 深色模式 / Dark theme.
+       Dark applies when the system prefers dark AND the user hasn't forced
+       light (the toggle), OR when the user has forced dark. The toggle flips a
+       [data-theme] attribute on <html>; the swap is instant (no transition on
+       a var()-color, which is the "light bg + dark text" trap). The media-query
+       set and the [data-theme="dark"] set carry identical declarations — keep
+       them in sync. */
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg-color: #1a1714;
         --card-bg: #242019;
         --text-primary: #e8e0d4;
@@ -800,29 +819,50 @@
         --card-finished: #28231f;
         --grip: #5f574d;
       }
-
-      .grinder-select {
+      :root:not([data-theme="light"]) .grinder-select {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9287' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
       }
-
-      .card {
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      :root:not([data-theme="light"]) .card {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
-
-      .brew-method {
-        background: rgba(138, 158, 122, 0.08);
-      }
-
-      .input-field {
-        background: var(--card-bg);
-        color: var(--text-primary);
-      }
-
-      .input-field::placeholder {
-        color: var(--text-secondary);
-      }
+      :root:not([data-theme="light"]) .brew-method { background: rgba(138, 158, 122, 0.08); }
+      :root:not([data-theme="light"]) .input-field { background: var(--card-bg); color: var(--text-primary); }
+      :root:not([data-theme="light"]) .input-field::placeholder { color: var(--text-secondary); }
     }
+
+    /* Manual dark override (beats a system-light preference). */
+    :root[data-theme="dark"] {
+      --bg-color: #1a1714;
+      --card-bg: #242019;
+      --text-primary: #e8e0d4;
+      --text-secondary: #9a9287;
+      --accent-color: #8a9e7a;
+      --border-color: #3a352e;
+      --success-color: #d4735c;
+      --warning-color: #b8a060;
+
+      --sage: #8fa07d;  --sage-bg: rgba(143, 160, 125, 0.18);
+      --gold: #c9a24a;  --gold-bg: rgba(201, 162, 74, 0.16);
+      --clay: #c08868;  --clay-bg: rgba(192, 136, 104, 0.15);
+      --mute: #9a8d79;  --mute-bg: rgba(154, 141, 121, 0.16);
+      --spark-base: rgba(232, 224, 212, 0.12);
+      --best-bg: #34302a;
+      --ring-on: rgba(214, 180, 140, 0.6);
+      --ring-off: rgba(214, 180, 140, 0.22);
+      --ring-fill: radial-gradient(circle at 36% 30%, rgba(214, 180, 140, 0.5), rgba(196, 158, 116, 0.82));
+      --stamp: rgba(196, 150, 116, 0.55);
+      --card-finished: #28231f;
+      --grip: #5f574d;
+    }
+    :root[data-theme="dark"] .grinder-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9287' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    }
+    :root[data-theme="dark"] .card {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    :root[data-theme="dark"] .brew-method { background: rgba(138, 158, 122, 0.08); }
+    :root[data-theme="dark"] .input-field { background: var(--card-bg); color: var(--text-primary); }
+    :root[data-theme="dark"] .input-field::placeholder { color: var(--text-secondary); }
 
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
@@ -864,6 +904,8 @@
       <button class="lang-btn active" data-lang="zh">中文</button>
       <span class="lang-sep" aria-hidden="true">·</span>
       <button class="lang-btn" data-lang="en">EN</button>
+      <span class="theme-sep" aria-hidden="true"></span>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="切到深色">☾</button>
     </nav>
 
     <!-- Header -->
@@ -1255,6 +1297,9 @@
       if (elements.viewBtnJournal) elements.viewBtnJournal.textContent = t.tabJournal;
       if (elements.viewBtnConverter) elements.viewBtnConverter.textContent = t.tabConverter;
       if (elements.logLinkBtn) elements.logLinkBtn.textContent = t.recordThisBrew;
+
+      // Theme toggle aria-label/title are journal-side strings (logLabels)
+      if (typeof updateThemeToggle === 'function') updateThemeToggle();
     }
 
     // Update input field attributes based on source grinder
@@ -1857,6 +1902,7 @@
         freshness: { resting: '养豆中', peak: '赏味期', late: '赏味后期', fading: '风味渐弱', finished: '已喝完' },
         trend: { rising: '渐入佳境', falling: '近来回落', stable: '趋于稳定', tuning: '调试中' },
         sortFreshness: '⇅ 赏味期排序', sortFreshnessHint: '按赏味期由佳到弱排序', dragSort: '拖动排序',
+        themeToDark: '切到深色', themeToLight: '切到浅色',
         bagName: '名称', bagOrigin: '产地', bagRoastDate: '烘焙日期',
         bagRoastLevel: '烘焙度', bagGrinderModel: '磨豆机',
         brewGrindSetting: '刻度', translateGrind: '换算 ⇄',
@@ -1895,6 +1941,7 @@
         freshness: { resting: 'resting', peak: 'peak', late: 'late peak', fading: 'fading', finished: 'finished' },
         trend: { rising: 'dialing in', falling: 'slipping', stable: 'steady', tuning: 'tuning' },
         sortFreshness: '⇅ Sort by freshness', sortFreshnessHint: 'Sort by taste window, best first', dragSort: 'Drag to reorder',
+        themeToDark: 'Switch to dark', themeToLight: 'Switch to light',
         bagName: 'name', bagOrigin: 'origin', bagRoastDate: 'roast date',
         bagRoastLevel: 'roast', bagGrinderModel: 'grinder',
         brewGrindSetting: 'grind', translateGrind: 'convert ⇄',
@@ -2792,11 +2839,11 @@
     let cardWraps = {};          // bag id → its .bag-card-wrap (this render)
     let dragState = null;        // { id, order, fromIndex, toIndex, startY, deltaY, rects, dragH }
 
-    function isDarkNow() {
-      return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
-    }
     function liftShadow() {
-      return isDarkNow() ? '0 16px 38px rgba(0,0,0,0.5)' : '0 14px 34px rgba(45,42,38,0.22)';
+      // effectiveDark() is defined in the dark-mode block below (hoisted); it
+      // honours the manual ☾/☀ override, not just the system preference.
+      return (typeof effectiveDark === 'function' && effectiveDark())
+        ? '0 16px 38px rgba(0,0,0,0.5)' : '0 14px 34px rgba(45,42,38,0.22)';
     }
 
     function gripHandle(bagId) {
@@ -2961,6 +3008,73 @@
       BrewLog.saveJournal(sortBagsByFreshness(bags));
       applyRoute();
       if (!prefersReducedMotion()) flipCards(prevTops, null);
+    }
+
+    // ── Dark mode (☾/☀) ──────────────────────────────────────────────
+    // Default follows the system; a manual toggle overrides it and persists.
+    // The swap is instant: the theme is a [data-theme] attribute on <html>,
+    // so CSS sees an ordinary cascade change (never a mid-transition var()
+    // mutation, which is the "light bg + dark text" trap from the handoff).
+    const THEME_KEY = 'grinder-theme';
+    let themeManual = null; // true=dark, false=light, null=follow system
+
+    function resolveEffectiveDark(manual, systemDark) {
+      return manual != null ? manual : systemDark;
+    }
+    function systemPrefersDark() {
+      return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function effectiveDark() {
+      return resolveEffectiveDark(themeManual, systemPrefersDark());
+    }
+
+    function applyTheme() {
+      const root = document.documentElement;
+      if (root) {
+        if (themeManual == null) {
+          if (root.removeAttribute) root.removeAttribute('data-theme'); // CSS follows system
+        } else if (root.setAttribute) {
+          root.setAttribute('data-theme', themeManual ? 'dark' : 'light');
+        }
+      }
+      updateThemeToggle();
+    }
+
+    function updateThemeToggle() {
+      const btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      const dark = effectiveDark();
+      const L = logLabels();
+      btn.textContent = dark ? '☀' : '☾';
+      if (btn.setAttribute) {
+        btn.setAttribute('aria-label', dark ? L.themeToLight : L.themeToDark);
+        btn.setAttribute('title', dark ? L.themeToLight : L.themeToDark);
+      }
+    }
+
+    function toggleTheme() {
+      themeManual = !effectiveDark();
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(THEME_KEY, themeManual ? 'dark' : 'light');
+        }
+      } catch (e) { /* storage unavailable — theme stays session-only */ }
+      applyTheme();
+    }
+
+    function initTheme() {
+      try {
+        const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_KEY) : null;
+        themeManual = saved === 'dark' ? true : saved === 'light' ? false : null;
+      } catch (e) { themeManual = null; }
+      applyTheme();
+      if (typeof matchMedia === 'function') {
+        const mq = matchMedia('(prefers-color-scheme: dark)');
+        // While following system, CSS reskins itself; only the icon needs a nudge.
+        const onChange = () => { if (themeManual == null) updateThemeToggle(); };
+        if (mq.addEventListener) mq.addEventListener('change', onChange);
+        else if (mq.addListener) mq.addListener(onChange);
+      }
     }
 
     function setCardFlip(refs, confirming) {
@@ -3173,7 +3287,12 @@
     }
     document.addEventListener('keydown', onLogKeydown);
 
+    // Theme toggle (☾/☀)
+    const themeToggleEl = document.getElementById('themeToggle');
+    if (themeToggleEl) themeToggleEl.addEventListener('click', toggleTheme);
+
     // Initialize
+    initTheme();
     updateTexts();
     updateInputConfig();
     applyRoute();
